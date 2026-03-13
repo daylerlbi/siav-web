@@ -1,0 +1,41 @@
+name: Verificación de compilación
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Asegúrate de usar la misma versión que en el proyecto
+
+      - name: Instalar pnpm
+        run: npm install -g pnpm
+
+      - name: Configurar PNPM_HOME
+        run: |
+          export SHELL=/bin/bash
+          pnpm setup
+          echo "PNPM_HOME=$HOME/.local/share/pnpm" >> $GITHUB_ENV
+          echo "$HOME/.local/share/pnpm" >> $GITHUB_PATH
+
+      - name: Instalar HeroUI
+        run: pnpm add -g heroui-cli
+
+      - name: Agregar componentes de HeroUI
+        run: pnpm heroui add --all
+
+      - name: Instalar dependencias
+        run: pnpm install
+
+      - name: Compilar el proyecto
+        run: pnpm run build

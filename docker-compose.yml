@@ -1,0 +1,21 @@
+services:
+  siav-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - VITE_CLIENT_ID_GOOGLE=${VITE_CLIENT_ID_GOOGLE}
+        - VITE_BACKEND_URL=${VITE_BACKEND_URL}
+        - VITE_MOODLE_URL=${VITE_MOODLE_URL}
+        - VITE_MOODLE_TOKEN=${VITE_MOODLE_TOKEN}
+        - VITE_LOGIN_URL=${VITE_LOGIN_URL}
+    container_name: siav-web
+    ports:
+      - "5173:80"
+    networks:
+      - frontend-net
+
+networks:
+  frontend-net:
+    external: true
