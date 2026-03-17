@@ -45,7 +45,7 @@ const Cohortes = () => {
 
   const fetchCohortes = () => {
     setCargandoCohortes(true)
-    fetch(`${backendUrl}/cohortes/listar`)
+    fetch(`${backendUrl}/api/cohortes/listar`)
       .then((response) => response.json())
       .then((data) => {
         const datosTabla = data.map((cohorte) => ({
@@ -72,7 +72,7 @@ const Cohortes = () => {
 
   // Ver detalles de una cohorte por ID
   const handleViewCohorte = (cohorte) => {
-    fetch(`${backendUrl}/cohortes/${cohorte.id}`)
+    fetch(`${backendUrl}/api/cohortes/${cohorte.id}`)
       .then((response) => response.json())
       .then((data) => {
         setCohorteDetails(data)
@@ -106,7 +106,7 @@ const Cohortes = () => {
       fechaCreacion: selectedCohorte.fechaCreacion // Mantener la fecha de creación original
     }
 
-    fetch(`${backendUrl}/cohortes/${selectedCohorte.id}`, {
+    fetch(`${backendUrl}/api/cohortes/${selectedCohorte.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -153,7 +153,7 @@ const Cohortes = () => {
       nombre: createFormData.nombre
     }
 
-    fetch(`${backendUrl}/cohortes/crear`, {
+    fetch(`${backendUrl}/api/cohortes/crear`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

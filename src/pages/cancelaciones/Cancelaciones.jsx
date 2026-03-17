@@ -81,7 +81,7 @@ const Cancelaciones = () => {
   // Función para obtener todas las solicitudes de cancelación
   const fetchSolicitudes = () => {
     setCargandoCancelaciones(true)
-    fetch(`${backendUrl}/solicitudes/cancelacion`)
+    fetch(`${backendUrl}/api/solicitudes/cancelacion`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Error al obtener las solicitudes')
@@ -195,7 +195,7 @@ const Cancelaciones = () => {
   // Cargar estudiantes activos (estado 1 = 'En curso')
   const cargarEstudiantes = async () => {
     try {
-      const response = await fetch(`${backendUrl}/estudiantes/listar/estado/1`)
+      const response = await fetch(`${backendUrl}/api/estudiantes/listar/estado/1`)
       if (!response.ok) {
         throw new Error('Error al cargar estudiantes')
       }
@@ -216,7 +216,7 @@ const Cancelaciones = () => {
   const cargarMateriasPorEstudiante = async (estudianteId) => {
     try {
       const response = await fetch(
-        `${backendUrl}/matriculas/estudiante/${estudianteId}`
+        `${backendUrl}/api/matriculas/estudiante/${estudianteId}`
       )
       if (!response.ok) {
         throw new Error('Error al cargar materias del estudiante')
@@ -331,7 +331,7 @@ const Cancelaciones = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/solicitudes/cancelacion/crear`,
+        `${backendUrl}/api/solicitudes/cancelacion/crear`,
         {
           method: 'POST',
           headers: {
@@ -420,7 +420,7 @@ const Cancelaciones = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/solicitudes/cancelacion/actualizar/${editSolicitudId}`,
+        `${backendUrl}/api/solicitudes/cancelacion/actualizar/${editSolicitudId}`,
         {
           method: 'PUT',
           headers: {
@@ -481,7 +481,7 @@ const Cancelaciones = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/solicitudes/cancelacion/aprobar/${currentSolicitud.Id}`,
+        `${backendUrl}/api/solicitudes/cancelacion/aprobar/${currentSolicitud.Id}`,
         {
           method: 'POST',
           headers: {

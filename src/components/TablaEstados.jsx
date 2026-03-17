@@ -157,20 +157,20 @@ const TablaEstados = ({
           <p className='mb-4 text-subtitulos'>Filtros</p>
           <div className='flex gap-4 mb-4 flex-wrap font-semibold text-normal'>
             {filtros.map((col) => (
-              <Input
-                classNames={{
-                  inputWrapper:
-                    'border border-gris-institucional rounded-[15px]'
-                }}
-                label={col}
-                labelPlacement='outside'
-                key={col}
-                placeholder={`Ingresa el ${col.toLowerCase()}`}
-                value={filtross[col] || ''}
-                onValueChange={(val) => actualizarFiltro(col, val)} // Usar nueva función
-                className='max-w-xs'
-                isClearable
-              />
+              <div key={col} className='flex flex-col gap-1 max-w-xs'>
+  <label className='text-sm'>{col}</label>
+  <div className='border border-gris-institucional rounded-[15px] px-3 py-2 flex items-center'>
+    <input
+      className='w-full outline-none bg-transparent text-sm'
+      placeholder={`Ingresa el ${col.toLowerCase()}`}
+      value={filtross[col] || ''}
+      onChange={(e) => actualizarFiltro(col, e.target.value)}
+    />
+    {filtross[col] && (
+      <button onClick={() => actualizarFiltro(col, '')} className='ml-2 text-gray-400 hover:text-gray-600'>✕</button>
+    )}
+  </div>
+</div>
             ))}
           </div>
         </div>
