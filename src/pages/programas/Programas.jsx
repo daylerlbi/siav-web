@@ -4,7 +4,7 @@ import { Pencil } from 'lucide-react'
 import Modal from '../../components/Modal'
 import Boton from '../../components/Boton'
 import AlertaModal from '../../components/AlertaModal'
-import { Form, Input, RadioGroup, Radio } from '@heroui/react'
+import { RadioGroup, Radio } from '@heroui/react'
 import { getBackendUrl, getMoodleToken, getMoodleUrl } from '../../lib/controllers/endpoints'
 
 const Programas = () => {
@@ -25,17 +25,14 @@ const Programas = () => {
   const moodleUrl = getMoodleUrl()
   const moodleToken = getMoodleToken()
 
-  // Estados para el AlertaModal
   const [isAlertOpen, setIsAlertOpen] = useState(false)
   const [alertType, setAlertType] = useState('success')
   const [alertMessage, setAlertMessage] = useState(null)
 
-  // Validaciones para código
   const codigoErrors = []
   if (codigo === '') {
     codigoErrors.push('Este campo es obligatorio')
   }
-
   if (codigo && !/^\d+$/.test(codigo)) {
     codigoErrors.push('Solo puede contener números')
   }
@@ -43,7 +40,6 @@ const Programas = () => {
     codigoErrors.push('El código debe tener al menos 3 caracteres')
   }
 
-  // Validaciones para programa (nombre)
   const programaErrors = []
   if (programa === '') {
     programaErrors.push('Este campo es obligatorio')
@@ -51,70 +47,48 @@ const Programas = () => {
 
   useEffect(() => {
     setCargandoProgramas(true)
-    fetch(`${backendUrl}/programas/listar`)
+    fetch(`${backendUrl}/api/programas/listar`)
       .then((response) => response.json())
       .then((data) => {
-        const programasCompletos = data.map((programa) => {
-          return {
-            ...programa,
-            Nombre: programa.nombre,
-            Código: programa.codigo,
-            Id: programa.id
-          }
-        })
-
-        const posgrado = programasCompletos.filter(
-          (programa) => programa.esPosgrado === true
-        )
-        setProgramasPosgrado(posgrado)
-
-        const pregrado = programasCompletos.filter(
-          (programa) => programa.esPosgrado === false
-        )
-        setProgramasPregrado(pregrado)
+        const programasCompletos = data.map((programa) => ({
+          ...programa,
+          Nombre: programa.nombre,
+          Código: programa.codigo,
+          Id: programa.id
+        }))
+        setProgramasPosgrado(programasCompletos.filter((p) => p.esPosgrado === true))
+        setProgramasPregrado(programasCompletos.filter((p) => p.esPosgrado === false))
         setCargandoProgramas(false)
       })
 
-    fetch(`${backendUrl}/programas/tipos-programa`)
+    fetch(`${backendUrl}/api/programas/tipos-programa`)
       .then((response) => response.json())
-      .then((data) => {
-        setTiposPrograma(data)
-      })
+      .then((data) => setTiposPrograma(data))
   }, [])
 
   const cargarProgramas = async () => {
     setCargandoProgramas(true)
-    fetch(`${backendUrl}/programas/listar`)
+    fetch(`${backendUrl}/api/programas/listar`)
       .then((response) => response.json())
       .then((data) => {
-        const programasCompletos = data.map((programa) => {
-          return {
-            ...programa,
-            Nombre: programa.nombre,
-            Código: programa.codigo,
-            Id: programa.id
-          }
-        })
-
-        const posgrado = programasCompletos.filter(
-          (programa) => programa.esPosgrado === true
-        )
-        setProgramasPosgrado(posgrado)
-
-        const pregrado = programasCompletos.filter(
-          (programa) => programa.esPosgrado === false
-        )
-        setProgramasPregrado(pregrado)
+        const programasCompletos = data.map((programa) => ({
+          ...programa,
+          Nombre: programa.nombre,
+          Código: programa.codigo,
+          Id: programa.id
+        }))
+        setProgramasPosgrado(programasCompletos.filter((p) => p.esPosgrado === true))
+        setProgramasPregrado(programasCompletos.filter((p) => p.esPosgrado === false))
         setCargandoProgramas(false)
       })
   }
-  // Añadir este método para cargar los datos al editar
+
   const prepararEdicion = (programa) => {
     setCodigo(programa.codigo)
     setPrograma(programa.nombre)
     setPosgrado(programa.esPosgrado)
-    setModoEdicion(true) // Nuevo estado para controlar si estamos en modo edición
-    setProgramaId(programa.id) // Nuevo estado para guardar el ID del programa a editar
+    setModoEdicion(true)
+    setProgramaId(programa.id)
     setMoodleId(programa.moodleId)
     setHistoricoMoodleId(programa.historicoMoodleId)
     setSemestreActual(programa.semestreActual)
@@ -123,127 +97,70 @@ const Programas = () => {
 
   const crearPrograma = async (e) => {
     e.preventDefault()
-    const data = {
-      codigo: codigo,
-      nombre: programa,
-      esPosgrado: posgrado
-    }
+    const data = { codigo, nombre: programa, esPosgrado: posgrado }
     try {
-      // Verificar que los tipos de programa se hayan cargado correctamente
       if (tiposPrograma.length < 2) {
         setAlertType('error')
-        setAlertMessage(
-          'No se pudieron cargar los tipos de programa necesarios. Intente nuevamente.'
-        )
+        setAlertMessage('No se pudieron cargar los tipos de programa necesarios. Intente nuevamente.')
         setIsAlertOpen(true)
         return
       }
 
-      // Seleccionar el parentId adecuado según el tipo de programa
-      // Si es pregrado, usar el primer elemento (índice 0)
-      // Si es posgrado, usar el segundo elemento (índice 1)
-      const parentMoodleId = posgrado
-        ? tiposPrograma[1].moodleId
-        : tiposPrograma[0].moodleId
+      const parentMoodleId = posgrado ? tiposPrograma[1].moodleId : tiposPrograma[0].moodleId
 
       if (!parentMoodleId) {
         setAlertType('error')
-        setAlertMessage(
-          'No se pudo determinar la categoría padre en Moodle. Contacte al administrador.'
-        )
+        setAlertMessage('No se pudo determinar la categoría padre en Moodle. Contacte al administrador.')
         setIsAlertOpen(true)
         return
       }
 
-      const response = await fetch(`${backendUrl}/programas/crear`, {
+      const response = await fetch(`${backendUrl}/api/programas/crear`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
+
       if (!response.ok) {
         const errorData = await response.json()
         setAlertType('error')
         setAlertMessage(errorData.message)
         setIsAlertOpen(true)
       } else {
-        const responseData = await response.json()
-        const programaResponse = responseData
+        const programaResponse = await response.json()
 
-        // Paso 1: Crear la categoría principal del programa en Moodle
-        // Aquí usamos el parentMoodleId en lugar de 0
-        fetch(
-          `${moodleUrl}?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=core_course_create_categories&categories[0][name]=${programaResponse.nombre}&categories[0][parent]=${parentMoodleId}&categories[0][description]=${programaResponse.nombre}`
-        )
-          .then((response) => response.json())
+        fetch(`${moodleUrl}?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=core_course_create_categories&categories[0][name]=${programaResponse.nombre}&categories[0][parent]=${parentMoodleId}&categories[0][description]=${programaResponse.nombre}`)
+          .then((r) => r.json())
           .then((data) => {
-            // Obtener el ID de Moodle para el programa
             const programaMoodleId = data[0].id
-
-            // Paso 2: Vincular el ID de Moodle con el programa en el backend
-            const body = {
-              backendId: programaResponse.id,
-              moodleId: programaMoodleId
-            }
-
-            return fetch(`${backendUrl}/programas/moodle`, {
+            return fetch(`${backendUrl}/api/programas/moodle`, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(body)
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ backendId: programaResponse.id, moodleId: programaMoodleId })
             })
-              .then((response) => response.json())
-              .then(() => {
-                // Paso 3: Crear la categoría "Histórico" como hijo del programa en Moodle
-                return fetch(
-                  `${moodleUrl}?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=core_course_create_categories&categories[0][name]=Histórico&categories[0][parent]=${programaMoodleId}&categories[0][description]=Histórico de cursos del programa ${programaResponse.nombre}`
-                )
-              })
-              .then((response) => response.json())
+              .then((r) => r.json())
+              .then(() => fetch(`${moodleUrl}?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=core_course_create_categories&categories[0][name]=Histórico&categories[0][parent]=${programaMoodleId}&categories[0][description]=Histórico de cursos del programa ${programaResponse.nombre}`))
+              .then((r) => r.json())
               .then((historicoCategoriaData) => {
                 const historicoMoodleId = historicoCategoriaData[0].id
-
-                // Paso 4: Vincular el ID del histórico con el programa en el backend
-                const historicoBody = {
-                  backendId: programaResponse.id,
-                  moodleId: historicoMoodleId
-                }
-
-                return fetch(`${backendUrl}/programas/historico/moodle`, {
+                return fetch(`${backendUrl}/api/programas/historico/moodle`, {
                   method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(historicoBody)
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ backendId: programaResponse.id, moodleId: historicoMoodleId })
                 })
               })
-              .then((response) => response.json())
-              .then(() => {
-                // Histórico Moodle ID vinculado exitosamente
-              })
+              .then((r) => r.json())
               .catch((error) => {
-                console.error(
-                  'Error en la creación o vinculación del histórico:',
-                  error
-                )
+                console.error('Error en la creación o vinculación del histórico:', error)
                 setAlertType('warning')
-                setAlertMessage(
-                  'Programa creado pero hubo un problema con la categoría Histórico'
-                )
+                setAlertMessage('Programa creado pero hubo un problema con la categoría Histórico')
                 setIsAlertOpen(true)
               })
           })
           .catch((error) => {
-            console.error(
-              'Error en la creación o vinculación de la categoría principal:',
-              error
-            )
+            console.error('Error en la creación o vinculación de la categoría principal:', error)
             setAlertType('warning')
-            setAlertMessage(
-              'Programa creado pero hubo un problema con la vinculación a Moodle'
-            )
+            setAlertMessage('Programa creado pero hubo un problema con la vinculación a Moodle')
             setIsAlertOpen(true)
           })
 
@@ -265,35 +182,19 @@ const Programas = () => {
   }
 
   const actualizarEnBackend = async (id, data) => {
-    const response = await fetch(`${backendUrl}/programas/${id}`, {
+    const response = await fetch(`${backendUrl}/api/programas/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     })
-
-    if (!response.ok) {
-      throw new Error('Error al actualizar el programa en el backend')
-    }
-
+    if (!response.ok) throw new Error('Error al actualizar el programa en el backend')
     return await response.json()
   }
 
   const actualizarEnMoodle = async (moodleId, nombrePrograma) => {
-    // La API de Moodle puede retornar [] o null con status 200
     try {
-      const response = await fetch(
-        `${moodleUrl}?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=core_course_update_categories&categories[0][id]=${moodleId}&categories[0][name]=${nombrePrograma}&categories[0][description]=${nombrePrograma}`
-      )
-
-      if (!response.ok) {
-        console.warn('Respuesta no exitosa de Moodle')
-        return false
-      }
-
-      // Incluso si la respuesta es [], null o cualquier otro valor,
-      // consideramos éxito si el status code es 200 OK
+      const response = await fetch(`${moodleUrl}?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=core_course_update_categories&categories[0][id]=${moodleId}&categories[0][name]=${nombrePrograma}&categories[0][description]=${nombrePrograma}`)
+      if (!response.ok) { console.warn('Respuesta no exitosa de Moodle'); return false }
       return true
     } catch (error) {
       console.error('Error al comunicarse con Moodle:', error)
@@ -310,40 +211,23 @@ const Programas = () => {
     setIsOpen(false)
   }
 
-  // Refactorización del método actualizarPrograma
   const actualizarPrograma = async (e) => {
     e.preventDefault()
     try {
-      // Ya no necesitamos obtener los datos del programa, usamos el moodleId del estado
-
-      // Preparar y actualizar en el backend
       const body = {
         nombre: programa,
         codigo: codigo,
         esPosgrado: posgrado,
-        moodleId: moodleId, // Usar el moodleId del estado en lugar de obtenerlo con una petición
+        moodleId: moodleId,
         historicoMoodleId: historicoMoodleId,
         semestreActual: semestreActual
       }
-
       await actualizarEnBackend(programaId, body)
-
-      // Actualizar en Moodle si hay un ID asociado
       let moodleActualizado = true
-      if (moodleId) {
-        // Verificar si hay un moodleId en el estado
-        moodleActualizado = await actualizarEnMoodle(moodleId, programa)
-      }
-
-      // Limpiar y mostrar mensaje
+      if (moodleId) moodleActualizado = await actualizarEnMoodle(moodleId, programa)
       limpiarFormulario()
-
       setAlertType('success')
-      setAlertMessage(
-        moodleActualizado
-          ? '¡Programa actualizado exitosamente en backend y Moodle!'
-          : '¡Programa actualizado en el backend pero hubo un problema con Moodle!'
-      )
+      setAlertMessage(moodleActualizado ? '¡Programa actualizado exitosamente en backend y Moodle!' : '¡Programa actualizado en el backend pero hubo un problema con Moodle!')
       setIsAlertOpen(true)
       cargarProgramas()
     } catch (error) {
@@ -360,25 +244,15 @@ const Programas = () => {
     {
       icono: <Pencil className='text-[25px]' />,
       tooltip: 'Editar',
-      accion: (programa) => {
-        prepararEdicion(programa)
-      }
+      accion: (programa) => prepararEdicion(programa)
     }
   ]
 
   return (
     <div className='p-4 w-full flex flex-col items-center justify-center'>
       <div className='w-full flex items-center justify-between mb-8'>
-        <p className='text-center text-titulos flex-1'>
-          Lista de programas de posgrado
-        </p>
-        <Boton
-          onClick={() => {
-            setIsOpen(true)
-          }}
-        >
-          Crear programa
-        </Boton>
+        <p className='text-center text-titulos flex-1'>Lista de programas de posgrado</p>
+        <Boton onClick={() => setIsOpen(true)}>Crear programa</Boton>
       </div>
       <div className='w-full mb-8'>
         <Tabla
@@ -390,10 +264,8 @@ const Programas = () => {
           cargandoContenido={cargandoProgramas}
         />
       </div>
-      <p className='text-center text-titulos mt-8'>
-        Lista de programas de pregrado
-      </p>
-      <div className='w-full '>
+      <p className='text-center text-titulos mt-8'>Lista de programas de pregrado</p>
+      <div className='w-full'>
         <Tabla
           informacion={programasPregrado}
           columnas={columnas}
@@ -409,7 +281,6 @@ const Programas = () => {
         onOpenChange={(open) => {
           setIsOpen(open)
           if (!open) {
-            // Reiniciar estados al cerrar el modal
             setModoEdicion(false)
             setCodigo('')
             setPrograma('')
@@ -419,62 +290,45 @@ const Programas = () => {
         }}
         cabecera={modoEdicion ? 'Editar Programa' : 'Crear Programa'}
         cuerpo={
-          <Form
+          <form
             className='flex flex-col gap-2'
             onSubmit={modoEdicion ? actualizarPrograma : crearPrograma}
           >
-            <Input
-              classNames={{
-                label: ` h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
-                base: 'flex items-start',
-                inputWrapper:
-                  'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
-                mainWrapper: 'w-full '
-              }}
-              className='py-4'
-              isRequired
-              label='Código'
-              labelPlacement='outside'
-              name='codigo'
-              placeholder='Ingresa el código del programa'
-              type='text'
-              value={codigo}
-              onValueChange={(value) => setCodigo(value)}
-              isInvalid={codigoErrors.length > 0}
-              errorMessage={() => (
+            <div className='flex flex-col gap-1 w-full py-4'>
+              <label className='text-sm'>Código *</label>
+              <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+                <input
+                  className='w-full outline-none bg-transparent text-sm'
+                  placeholder='Ingresa el código del programa'
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                  required
+                />
+              </div>
+              {codigoErrors.length > 0 && (
                 <ul className='text-xs text-danger mt-1'>
-                  {codigoErrors.map((error, i) => (
-                    <li key={i}>{error}</li>
-                  ))}
+                  {codigoErrors.map((error, i) => <li key={i}>{error}</li>)}
                 </ul>
               )}
-            />
-            <Input
-              classNames={{
-                label: ` h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
-                base: 'flex items-start',
-                inputWrapper:
-                  'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
-                mainWrapper: 'w-full '
-              }}
-              className='py-4'
-              isRequired
-              label='Nombre'
-              labelPlacement='outside'
-              name='programa'
-              placeholder='Ingresa el nombre del programa'
-              type='text'
-              value={programa}
-              onValueChange={(value) => setPrograma(value)}
-              isInvalid={programaErrors.length > 0}
-              errorMessage={() => (
+            </div>
+
+            <div className='flex flex-col gap-1 w-full py-4'>
+              <label className='text-sm'>Nombre *</label>
+              <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+                <input
+                  className='w-full outline-none bg-transparent text-sm'
+                  placeholder='Ingresa el nombre del programa'
+                  value={programa}
+                  onChange={(e) => setPrograma(e.target.value)}
+                  required
+                />
+              </div>
+              {programaErrors.length > 0 && (
                 <ul className='text-xs text-danger mt-1'>
-                  {programaErrors.map((error, i) => (
-                    <li key={i}>{error}</li>
-                  ))}
+                  {programaErrors.map((error, i) => <li key={i}>{error}</li>)}
                 </ul>
               )}
-            />
+            </div>
 
             <div className='flex flex-col gap-2 py-2'>
               <p className='text-normal'>Nivel académico</p>
@@ -490,15 +344,14 @@ const Programas = () => {
             </div>
 
             <div className='w-full flex justify-end mb-[-20px]'>
-              <Boton type={'submit'}>
+              <Boton type='submit'>
                 {modoEdicion ? 'Guardar cambios' : 'Crear programa'}
               </Boton>
             </div>
-          </Form>
+          </form>
         }
       />
 
-      {/* AlertaModal para notificaciones */}
       <AlertaModal
         isOpen={isAlertOpen}
         onClose={() => setIsAlertOpen(false)}

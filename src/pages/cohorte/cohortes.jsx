@@ -350,15 +350,17 @@ const Cohortes = () => {
         size='md'
         cuerpo={
           <form className='space-y-4'>
-            <Input
-              label='Nombre del cohorte'
-              value={editFormData.nombre}
-              onChange={(e) =>
-                setEditFormData({ ...editFormData, nombre: e.target.value })
-              }
-              isRequired
-              className='w-full'
-            />
+            <div className='flex flex-col gap-1'>
+  <label className='text-sm'>Nombre del cohorte *</label>
+  <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+    <input
+      className='w-full outline-none bg-transparent text-sm'
+      placeholder='Ej: 2025-I'
+      value={editFormData.nombre}
+      onChange={(e) => setEditFormData({ ...editFormData, nombre: e.target.value })}
+    />
+  </div>
+</div>
           </form>
         }
         footer={
@@ -376,16 +378,17 @@ const Cohortes = () => {
         size='md'
         cuerpo={
           <form className='space-y-4'>
-            <Input
-              label='Nombre del cohorte'
-              value={createFormData.nombre}
-              onChange={(e) =>
-                setCreateFormData({ ...createFormData, nombre: e.target.value })
-              }
-              placeholder='Ej: 2025-I'
-              isRequired
-              className='w-full'
-            />
+            <div className='flex flex-col gap-1'>
+  <label className='text-sm'>Nombre del cohorte *</label>
+  <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+    <input
+      className='w-full outline-none bg-transparent text-sm'
+      placeholder='Ej: 2025-I'
+      value={createFormData.nombre}
+      onChange={(e) => setCreateFormData({ ...createFormData, nombre: e.target.value })}
+    />
+  </div>
+</div>
           </form>
         }
         footer={

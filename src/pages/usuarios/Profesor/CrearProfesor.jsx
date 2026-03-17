@@ -178,7 +178,7 @@ const CrearProfesor = () => {
   const buscarProfesor = async () => {
     if (codigoErrors.length === 0) {
       fetch(
-        `${backendUrl}/oracle/profesores/buscar/codigo?codProfesor=${codigo}`
+        `${backendUrl}/api/oracle/profesores/buscar/codigo?codProfesor=${codigo}`
       )
         .then((response) => response.json())
         .then((data) => {
@@ -276,7 +276,7 @@ const CrearProfesor = () => {
 
     try {
       // 1. Crear profesor en el backend
-      const response = await fetch(`${backendUrl}/usuarios/profesores/crear`, {
+      const response = await fetch(`${backendUrl}/api/usuarios/profesores/crear`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -351,7 +351,7 @@ const CrearProfesor = () => {
           }
 
           const moodleUpdateResponse = await fetch(
-            `${backendUrl}/usuarios/profesores/moodle`,
+            `${backendUrl}/api/usuarios/profesores/moodle`,
             {
               method: 'POST',
               headers: {
