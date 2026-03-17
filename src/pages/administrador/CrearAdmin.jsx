@@ -41,7 +41,7 @@ const CrearAdmin = () => {
     }
 
     try {
-      const response = await fetch(`${backendUrl}/auth/register`, {
+      const response = await fetch(`${backendUrl}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
