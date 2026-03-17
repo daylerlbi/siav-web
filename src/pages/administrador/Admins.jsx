@@ -29,7 +29,7 @@ const Admins = () => {
       setCargandoAdmins(true)
       try {
         const accessToken = localStorage.getItem('accessToken')
-        const response = await fetch(`${backendUrl}/auth/admins`, {
+        const response = await fetch(`${backendUrl}/api/auth/admins`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ const Admins = () => {
   const activarAdmin = async (id) => {
     try {
       const accessToken = localStorage.getItem('accessToken')
-      const response = await fetch(`${backendUrl}/auth/admins/${id}/activar`, {
+      const response = await fetch(`${backendUrl}/api/auth/admins/${id}/activar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +88,7 @@ const Admins = () => {
     try {
       const accessToken = localStorage.getItem('accessToken')
       const response = await fetch(
-        `${backendUrl}/auth/admins/${id}/desactivar`,
+        `${backendUrl}/api/auth/admins/${id}/desactivar`,
         {
           method: 'POST',
           headers: {
