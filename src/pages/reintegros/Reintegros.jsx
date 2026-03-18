@@ -77,7 +77,7 @@ const Reintegros = () => {
   // Función para obtener todas las solicitudes de reintegro
   const fetchSolicitudes = () => {
     setCargandoReintegros(true)
-    fetch(`${backendUrl}/solicitudes/reintegro`)
+    fetch(`${backendUrl}/api/solicitudes/reintegro`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Error al obtener las solicitudes')
@@ -209,7 +209,7 @@ const Reintegros = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/solicitudes/reintegro/aprobar/${currentSolicitud.Id}`,
+        `${backendUrl}/api/solicitudes/reintegro/aprobar/${currentSolicitud.Id}`,
         {
           method: 'POST',
           body: formData,
@@ -246,7 +246,7 @@ const Reintegros = () => {
   // Cargar estudiantes inactivos (estado 2 = 'Inactivo')
   const cargarEstudiantes = async () => {
     try {
-      const response = await fetch(`${backendUrl}/estudiantes/listar/estado/2`)
+      const response = await fetch(`${backendUrl}/api/estudiantes/listar/estado/2`)
       if (!response.ok) {
         throw new Error('Error al cargar estudiantes')
       }
@@ -288,7 +288,7 @@ const Reintegros = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/solicitudes/reintegro/crear`,
+        `${backendUrl}/api/solicitudes/reintegro/crear`,
         {
           method: 'POST',
           headers: {
@@ -373,7 +373,7 @@ const Reintegros = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/solicitudes/reintegro/actualizar/${editSolicitudId}`,
+        `${backendUrl}/api/solicitudes/reintegro/actualizar/${editSolicitudId}`,
         {
           method: 'PUT',
           headers: {

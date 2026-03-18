@@ -58,7 +58,7 @@ const Contraprestaciones = () => {
 
   const fetchContraprestaciones = () => {
     setCargandoContraprestaciones(true)
-    fetch(`${backendUrl}/contraprestaciones`)
+    fetch(`${backendUrl}/api/contraprestaciones`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Error al obtener contraprestaciones')
@@ -202,7 +202,7 @@ const Contraprestaciones = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/contraprestaciones/aprobar/${currentContraprestacion.Id}`,
+        `${backendUrl}/api/contraprestaciones/aprobar/${currentContraprestacion.Id}`,
         {
           method: 'POST',
           body: formData,
@@ -256,7 +256,7 @@ const Contraprestaciones = () => {
 
       // Realizar petición POST para generar el certificado
       const response = await fetch(
-        `${backendUrl}/contraprestaciones/generar/certificado/${contraprestacion.Id}`,
+        `${backendUrl}/api/contraprestaciones/generar/certificado/${contraprestacion.Id}`,
         {
           method: 'POST',
           headers: {

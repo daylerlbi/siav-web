@@ -68,7 +68,7 @@ const Grupos = () => {
   useEffect(() => {
     cargarDatos()
     // Cargar la lista de programas
-    fetch(`${backendUrl}/programas/listar`)
+    fetch(`${backendUrl}/api/programas/listar`)
       .then((response) => response.json())
       .then((data) => {
         setProgramas(data)
@@ -83,7 +83,7 @@ const Grupos = () => {
   // Efecto para cargar pensums cuando se selecciona un programa
   useEffect(() => {
     if (programaId) {
-      fetch(`${backendUrl}/pensums/programa/${programaId}`)
+      fetch(`${backendUrl}/api/pensums/programa/${programaId}`)
         .then((response) => response.json())
         .then((data) => {
           setPensums(data)
@@ -103,7 +103,7 @@ const Grupos = () => {
   // Efecto para cargar materias cuando se selecciona un pensum
   useEffect(() => {
     if (pensumId) {
-      fetch(`${backendUrl}/materias/pensum/${pensumId}`)
+      fetch(`${backendUrl}/api/materias/pensum/${pensumId}`)
         .then((response) => response.json())
         .then((data) => {
           setMaterias(data)
@@ -119,7 +119,7 @@ const Grupos = () => {
 
   const cargarDatos = () => {
     setCargandoGrupos(true)
-    fetch(`${backendUrl}/grupos/vinculados`)
+    fetch(`${backendUrl}/api/grupos/vinculados`)
       .then((response) => response.json())
       .then((data) => {
         setGrupos(data)
@@ -133,12 +133,12 @@ const Grupos = () => {
         setCargandoGrupos(false)
       })
 
-    fetch(`${backendUrl}/cohortes/listar`)
+    fetch(`${backendUrl}/api/cohortes/listar`)
       .then((response) => response.json())
       .then((data) => {
         // Una vez que tenemos las cohortes, obtenemos los grupos de cada cohorte
         const fetchGruposPromises = data.map((cohorte) => {
-          return fetch(`${backendUrl}/cohortes/${cohorte.id}`)
+          return fetch(`${backendUrl}/api/cohortes/${cohorte.id}`)
             .then((response) => response.json())
             .then((cohortesData) => {
               // Devolvemos los grupos de esta cohorte
@@ -165,7 +165,7 @@ const Grupos = () => {
         setIsAlertOpen(true)
       })
 
-    fetch(`${backendUrl}/usuarios/rol/2`)
+    fetch(`${backendUrl}/api/usuarios/rol/2`)
       .then((response) => response.json())
       .then((data) => {
         setProfesores(data)
@@ -177,7 +177,7 @@ const Grupos = () => {
       })
 
     // Cargar materias para el formulario
-    fetch(`${backendUrl}/materias/listar`)
+    fetch(`${backendUrl}/api/materias/listar`)
       .then((response) => response.json())
       .then((data) => {
         setMaterias(data)
@@ -223,7 +223,7 @@ const Grupos = () => {
 
   // Función para ver detalles del grupo
   const verGrupo = (grupo) => {
-    fetch(`${backendUrl}/grupos/vinculado/${grupo.id}`)
+    fetch(`${backendUrl}/api/grupos/vinculado/${grupo.id}`)
       .then((response) => response.json())
       .then((data) => {
         setGrupoSeleccionado({
@@ -268,7 +268,7 @@ const Grupos = () => {
   // Función para crear un grupo
   const crearGrupo = async () => {
     try {
-      const response = await fetch(`${backendUrl}/grupos/crear`, {
+      const response = await fetch(`${backendUrl}/api/grupos/crear`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -297,7 +297,7 @@ const Grupos = () => {
   // Función para vincular un grupo
   const vincularGrupo = async (nuevoGrupoId) => {
     try {
-      const response = await fetch(`${backendUrl}/grupos/vincular`, {
+      const response = await fetch(`${backendUrl}/api/grupos/vincular`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -332,7 +332,7 @@ const Grupos = () => {
   // Función para obtener información de la materia
   const obtenerInformacionMateria = async (materiaId) => {
     try {
-      const response = await fetch(`${backendUrl}/materias/${materiaId}`)
+      const response = await fetch(`${backendUrl}/api/materias/${materiaId}`)
       const data = await response.json()
 
       if (!response.ok) {
@@ -389,7 +389,7 @@ const Grupos = () => {
   const asignarMoodleIdGrupo = async (grupoId, moodleId) => {
     try {
       const response = await fetch(
-        `${backendUrl}/grupos/moodle/${grupoId}?moodleId=${moodleId}`,
+        `${backendUrl}/api/grupos/moodle/${grupoId}?moodleId=${moodleId}`,
         { method: 'POST' }
       )
 
@@ -415,7 +415,7 @@ const Grupos = () => {
   // Función para obtener información del profesor
   const obtenerInformacionProfesor = async (profesorId) => {
     try {
-      const response = await fetch(`${backendUrl}/usuarios/${profesorId}`)
+      const response = await fetch(`${backendUrl}/api/usuarios/${profesorId}`)
       const data = await response.json()
 
       if (!response.ok) {
@@ -478,7 +478,7 @@ const Grupos = () => {
   // Función para obtener la información del grupo vinculado
   const obtenerGrupoVinculado = async (idGrupo) => {
     try {
-      const response = await fetch(`${backendUrl}/grupos/vinculado/${idGrupo}`)
+      const response = await fetch(`${backendUrl}/api/grupos/vinculado/${idGrupo}`)
       const data = await response.json()
 
       if (!response.ok) {
@@ -690,7 +690,7 @@ const Grupos = () => {
 
       // Actualizar el grupo en el backend
       const actualizarResponse = await fetch(
-        `${backendUrl}/grupos/vincular/${grupoId}`,
+        `${backendUrl}/api/grupos/vincular/${grupoId}`,
         {
           method: 'PUT',
           headers: {

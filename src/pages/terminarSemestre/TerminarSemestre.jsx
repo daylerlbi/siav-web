@@ -44,7 +44,7 @@ const TerminarSemestre = () => {
   useEffect(() => {
     const cargarProgramas = async () => {
       try {
-        const response = await fetch(`${backendUrl}/programas/listar`)
+        const response = await fetch(`${backendUrl}/api/programas/listar`)
         if (!response.ok) {
           throw new Error('Error al obtener los programas')
         }
@@ -114,7 +114,7 @@ const TerminarSemestre = () => {
 
           // Realizar la petición al backend para terminar el semestre de este programa
           const response = await fetch(
-            `${backendUrl}/semestres/terminar/${programa.id}/${programa.semestreActual}`,
+            `${backendUrl}/api/semestres/terminar/${programa.id}/${programa.semestreActual}`,
             {
               method: 'POST',
               headers: {

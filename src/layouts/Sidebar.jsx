@@ -62,7 +62,7 @@ const Sidebar = () => {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      fetch(`${backendUrl}/programas/listar`)
+      fetch(`${backendUrl}/api/programas/listar`)
         .then((response) => response.json())
         .then((data) => {
           const programasFiltrados = data.filter(

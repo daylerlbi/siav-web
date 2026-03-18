@@ -75,7 +75,7 @@ const Aplazamientos = () => {
   // Función para obtener todas las solicitudes de aplazamiento
   const fetchSolicitudes = () => {
     setCargandoAplazamientos(true)
-    fetch(`${backendUrl}/solicitudes/aplazamiento`)
+    fetch(`${backendUrl}/api/solicitudes/aplazamiento`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Error al obtener las solicitudes')
@@ -206,7 +206,7 @@ const Aplazamientos = () => {
     try {
       // Usar currentSolicitud.Id en lugar de id
       const response = await fetch(
-        `${backendUrl}/solicitudes/aplazamiento/aprobar/${currentSolicitud.Id}`,
+        `${backendUrl}/api/solicitudes/aplazamiento/aprobar/${currentSolicitud.Id}`,
         {
           method: 'POST',
           body: formData,
@@ -250,7 +250,7 @@ const Aplazamientos = () => {
   // Cargar estudiantes activos (estado 1 = 'En curso')
   const cargarEstudiantes = async () => {
     try {
-      const response = await fetch(`${backendUrl}/estudiantes/listar/estado/1`)
+      const response = await fetch(`${backendUrl}/api/estudiantes/listar/estado/1`)
       if (!response.ok) {
         throw new Error('Error al cargar estudiantes')
       }
@@ -292,7 +292,7 @@ const Aplazamientos = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/solicitudes/aplazamiento/crear`,
+        `${backendUrl}/api/solicitudes/aplazamiento/crear`,
         {
           method: 'POST',
           headers: {
@@ -379,7 +379,7 @@ const Aplazamientos = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/solicitudes/aplazamiento/actualizar/${editSolicitudId}`,
+        `${backendUrl}/api/solicitudes/aplazamiento/actualizar/${editSolicitudId}`,
         {
           method: 'PUT',
           headers: {
