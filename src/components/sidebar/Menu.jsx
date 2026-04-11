@@ -18,16 +18,14 @@ const Menu = ({
   const { userRole } = useAuth()
 
   const isRouteAllowed = (route) => {
-    // Para usuarios de Google, solo permitir acceso a Proyectos y grupos de pregrado
-    if (userRole === 'ROLE_GOOGLE') {
-      return (
-        route.startsWith('/estado-proyecto') ||
-        route.startsWith('/seguimiento') ||
-        route.startsWith('/informes') ||
-        route.startsWith('/pregrado/grupos')
-      )
-    }
-
+  // Para usuarios de Google (estudiantes), solo permitir acceso a Académico, Matrícula y Usuarios
+  if (userRole === 'ROLE_GOOGLE') {
+    return (
+      route.startsWith('/academico') ||
+      route.startsWith('/matricula') ||
+      route.startsWith('/usuarios')
+    )
+  }
     if (!userRole) {
       return (
         route.startsWith('/estado-proyecto') ||

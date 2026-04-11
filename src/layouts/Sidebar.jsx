@@ -21,31 +21,65 @@ const Sidebar = () => {
   const backendUrl = getBackendUrl()
   const [programas, setProgramas] = useState([])
   const [userRole, setUserRole] = useState(null)
-  // Cargar el rol del usuario desde localStorage (ahora con soporte para Google)
-  useEffect(() => {
+
+  const detectarRol = () => {
     const userInfo = localStorage.getItem('userInfo')
-    const googleUser = localStorage.getItem('user')
+    const googleUser = localStorage.getItem('googleToken')
 
     if (userInfo) {
       try {
         const { rol } = JSON.parse(userInfo)
-        // Normalizar el rol para que coincida con ProtectedRoute
         if (rol.includes('SUPERADMIN') || rol.includes('SUPER_ADMIN')) {
-          setUserRole('ROLE_SUPERADMIN')
+          return 'ROLE_SUPERADMIN'
         } else if (
           (rol.includes('ADMIN') || rol === 'ROLE_ADMIN') &&
           !rol.includes('SUPER')
         ) {
-          setUserRole('ROLE_ADMIN')
+          return 'ROLE_ADMIN'
         } else {
-          setUserRole(rol)
+          return rol
         }
       } catch (error) {
         console.error('Error al parsear userInfo:', error)
+        return null
       }
     } else if (googleUser) {
-      // Si es un usuario de Google, asignar un rol específico
-      setUserRole('ROLE_GOOGLE')
+      return 'ROLE_GOOGLE'
+    }
+    return null
+  }
+
+  useEffect(() => {
+    const rol = detectarRol()
+    console.log('Rol detectado al montar:', rol)
+    setUserRole(rol)
+
+    const handleStorageChange = () => {
+      const nuevoRol = detectarRol()
+      console.log('Cambio en localStorage detectado, nuevo rol:', nuevoRol)
+      setUserRole(nuevoRol)
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('googleTokenGuardado', handleStorageChange)
+
+    // Polling de respaldo: verifica cada 300ms durante 3 segundos
+    let intentos = 0
+    const interval = setInterval(() => {
+      intentos++
+      const rol = detectarRol()
+      if (rol) {
+        console.log('Rol detectado por polling:', rol)
+        setUserRole(rol)
+        clearInterval(interval)
+      }
+      if (intentos >= 10) clearInterval(interval)
+    }, 300)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('googleTokenGuardado', handleStorageChange)
+      clearInterval(interval)
     }
   }, [])
 
@@ -54,7 +88,7 @@ const Sidebar = () => {
   }
 
   const handleOptionClick = (label, codigo) => {
-    setSelectedOption(label) // Actualiza la opción seleccionada
+    setSelectedOption(label)
     if (codigo) {
       localStorage.setItem('codigoPrograma', codigo)
     }
@@ -68,13 +102,11 @@ const Sidebar = () => {
           const programasFiltrados = data.filter(
             (programa) => programa.esPosgrado
           )
-
           const programasTransformados = programasFiltrados.map((programa) => ({
             label: programa.nombre,
             href: '/posgrado/grupos',
             codigo: String(programa.id)
           }))
-
           setProgramas(programasTransformados)
         })
     }, 500)
@@ -88,22 +120,24 @@ const Sidebar = () => {
       JSON.stringify({ selectedMenu, selectedOption })
     )
   }, [selectedOption])
-  // Determinar qué menús mostrar según el rol
+
   const shouldShowMenu = (menuName) => {
-    // Para usuarios de Google, mostrar sólo Proyectos y Grupos
+    console.log('userRole actual:', userRole, '| menuName:', menuName)
+
     if (userRole === 'ROLE_GOOGLE') {
-      return menuName === 'Proyectos' || menuName === 'Grupos'
+      return (
+        menuName === 'Académico' ||
+        menuName === 'Matrícula' ||
+        menuName === 'Usuarios'
+      )
     }
 
-    if (!userRole) return menuName === 'Proyectos'
+    if (!userRole) return false
 
-    // El superadmin puede ver todos los menús
     if (userRole === 'ROLE_SUPERADMIN') return true
 
-    // El admin puede ver todos los menús excepto Admin
     if (userRole === 'ROLE_ADMIN') return menuName !== 'Admin'
 
-    // Otros roles solo ven Proyectos
     return menuName === 'Proyectos'
   }
 
@@ -210,8 +244,8 @@ const Sidebar = () => {
               funcion={() => toggleMenu(5)}
               icono={<PiProjectorScreenChart className='text-[25px]' />}
               opciones={[
-                { label: 'Proyectos', href: '/proyectos-admin' }, //? Cambiar de Fase, Asignar Director y Codirector, Subir nota de jurados en FASE 9
-                { label: 'Grupos Investigación', href: '/grupos-admin' } //? Asignar sustentaciones a cada proyecto (luego de eso cambiar automaticamente de fase)
+                { label: 'Proyectos', href: '/proyectos-admin' },
+                { label: 'Grupos Investigación', href: '/grupos-admin' }
               ]}
               openMenu={selectedMenu === 5}
               selectedOption={selectedOption}

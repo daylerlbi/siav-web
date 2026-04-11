@@ -25,6 +25,11 @@ const Programas = () => {
   const moodleUrl = getMoodleUrl()
   const moodleToken = getMoodleToken()
 
+  // ← NUEVO: detectar si es usuario de Google y su programa
+  const googleToken = localStorage.getItem('googleToken')
+  const isGoogleUser = !!googleToken
+  const programaIdEstudiante = localStorage.getItem('programaIdEstudiante')
+
   const [isAlertOpen, setIsAlertOpen] = useState(false)
   const [alertType, setAlertType] = useState('success')
   const [alertMessage, setAlertMessage] = useState(null)
@@ -56,8 +61,16 @@ const Programas = () => {
           Código: programa.codigo,
           Id: programa.id
         }))
-        setProgramasPosgrado(programasCompletos.filter((p) => p.esPosgrado === true))
-        setProgramasPregrado(programasCompletos.filter((p) => p.esPosgrado === false))
+        // ← NUEVO: filtrar por programa del estudiante si es Google
+        const posgrados = programasCompletos.filter((p) => p.esPosgrado === true)
+        const pregrados = programasCompletos.filter((p) => p.esPosgrado === false)
+        if (isGoogleUser && programaIdEstudiante) {
+          setProgramasPosgrado(posgrados.filter((p) => p.id === parseInt(programaIdEstudiante)))
+          setProgramasPregrado(pregrados.filter((p) => p.id === parseInt(programaIdEstudiante)))
+        } else {
+          setProgramasPosgrado(posgrados)
+          setProgramasPregrado(pregrados)
+        }
         setCargandoProgramas(false)
       })
 
@@ -77,8 +90,16 @@ const Programas = () => {
           Código: programa.codigo,
           Id: programa.id
         }))
-        setProgramasPosgrado(programasCompletos.filter((p) => p.esPosgrado === true))
-        setProgramasPregrado(programasCompletos.filter((p) => p.esPosgrado === false))
+        // ← NUEVO: filtrar por programa del estudiante si es Google
+        const posgrados = programasCompletos.filter((p) => p.esPosgrado === true)
+        const pregrados = programasCompletos.filter((p) => p.esPosgrado === false)
+        if (isGoogleUser && programaIdEstudiante) {
+          setProgramasPosgrado(posgrados.filter((p) => p.id === parseInt(programaIdEstudiante)))
+          setProgramasPregrado(pregrados.filter((p) => p.id === parseInt(programaIdEstudiante)))
+        } else {
+          setProgramasPosgrado(posgrados)
+          setProgramasPregrado(pregrados)
+        }
         setCargandoProgramas(false)
       })
   }
@@ -252,14 +273,14 @@ const Programas = () => {
     <div className='p-4 w-full flex flex-col items-center justify-center'>
       <div className='w-full flex items-center justify-between mb-8'>
         <p className='text-center text-titulos flex-1'>Lista de programas de posgrado</p>
-        <Boton onClick={() => setIsOpen(true)}>Crear programa</Boton>
+        {!isGoogleUser && <Boton onClick={() => setIsOpen(true)}>Crear programa</Boton>}
       </div>
       <div className='w-full mb-8'>
         <Tabla
           informacion={programasPosgrado}
           columnas={columnas}
           filtros={filtros}
-          acciones={acciones}
+          acciones={isGoogleUser ? [] : acciones}
           elementosPorPagina={5}
           cargandoContenido={cargandoProgramas}
         />
@@ -270,7 +291,7 @@ const Programas = () => {
           informacion={programasPregrado}
           columnas={columnas}
           filtros={filtros}
-          acciones={acciones}
+          acciones={isGoogleUser ? [] : acciones}
           elementosPorPagina={5}
           cargandoContenido={cargandoProgramas}
         />

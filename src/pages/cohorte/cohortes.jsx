@@ -14,31 +14,26 @@ const Cohortes = () => {
   const [editFormData, setEditFormData] = useState({ nombre: '' })
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [cohorteDetails, setCohorteDetails] = useState(null)
-  // Nuevos estados para la creación de cohorte
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [createFormData, setCreateFormData] = useState({ nombre: '' })
-
-  // Estados para AlertaModal
   const [alertaModalOpen, setAlertaModalOpen] = useState(false)
   const [alertaMessage, setAlertaMessage] = useState('')
   const [alertaType, setAlertaType] = useState('success')
   const [alertaTitulo, setAlertaTitulo] = useState('')
-
   const [cargandoCohortes, setCargandoCohortes] = useState(true)
-
   const backendUrl = getBackendUrl()
 
-  // Función para mostrar alerta
+  // ← NUEVO: detectar si es usuario de Google
+  const googleToken = localStorage.getItem('googleToken')
+  const isGoogleUser = !!googleToken
+
   const showAlerta = (mensaje, tipo, titulo) => {
     setAlertaMessage(mensaje)
     setAlertaType(tipo)
-    setAlertaTitulo(
-      titulo || (tipo === 'success' ? 'Operación exitosa' : 'Error')
-    )
+    setAlertaTitulo(titulo || (tipo === 'success' ? 'Operación exitosa' : 'Error'))
     setAlertaModalOpen(true)
   }
 
-  // Obtener todas las cohortes
   useEffect(() => {
     fetchCohortes()
   }, [])
@@ -52,25 +47,18 @@ const Cohortes = () => {
           ...cohorte,
           Id: cohorte.id,
           Nombre: cohorte.nombre,
-          'Fecha de creación': new Date(
-            cohorte.fechaCreacion
-          ).toLocaleDateString()
+          'Fecha de creación': new Date(cohorte.fechaCreacion).toLocaleDateString()
         }))
         setInformacion(datosTabla)
       })
       .catch(() => {
-        showAlerta(
-          'Error al cargar la lista de cohortes',
-          'error',
-          'Error de conexión'
-        )
+        showAlerta('Error al cargar la lista de cohortes', 'error', 'Error de conexión')
       })
       .finally(() => {
         setCargandoCohortes(false)
       })
   }
 
-  // Ver detalles de una cohorte por ID
   const handleViewCohorte = (cohorte) => {
     fetch(`${backendUrl}/api/cohortes/${cohorte.id}`)
       .then((response) => response.json())
@@ -79,15 +67,10 @@ const Cohortes = () => {
         setIsViewModalOpen(true)
       })
       .catch(() => {
-        showAlerta(
-          'Error al obtener los detalles de la cohorte',
-          'error',
-          'Error de conexión'
-        )
+        showAlerta('Error al obtener los detalles de la cohorte', 'error', 'Error de conexión')
       })
   }
 
-  // Editar cohorte
   const handleEditCohorte = (cohorte) => {
     setSelectedCohorte(cohorte)
     setEditFormData({ nombre: cohorte.nombre })
@@ -95,148 +78,98 @@ const Cohortes = () => {
   }
 
   const handleEditSubmit = (e) => {
-    // Verificar si hay un evento y si tiene el método preventDefault
-    if (e && e.preventDefault) {
-      e.preventDefault()
-    }
-
-    // Crear el objeto CohorteDTO que será enviado al backend
+    if (e && e.preventDefault) e.preventDefault()
     const cohorteDTO = {
-      nombre: editFormData.nombre, // Nombre actualizado
-      fechaCreacion: selectedCohorte.fechaCreacion // Mantener la fecha de creación original
+      nombre: editFormData.nombre,
+      fechaCreacion: selectedCohorte.fechaCreacion
     }
-
     fetch(`${backendUrl}/api/cohortes/${selectedCohorte.id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(cohorteDTO) // Enviar el objeto como JSON
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json() // Parsear la respuesta si es exitosa
-        } else {
-          return response.json().then((data) => {
-            throw new Error(data.mensaje || 'Error al actualizar la cohorte')
-          })
-        }
-      })
-      .then((data) => {
-        setIsEditModalOpen(false) // Cerrar el modal de edición
-        fetchCohortes() // Refrescar la lista de cohortes
-        showAlerta(
-          data.mensaje || 'Cohorte actualizada exitosamente',
-          'success',
-          'Cohorte actualizada'
-        )
-      })
-      .catch((error) => {
-        showAlerta(error.message, 'error', 'Error al actualizar')
-      })
-  }
-
-  // Crear cohorte - Nueva función
-  const handleCreateSubmit = () => {
-    // Validar que el nombre no esté vacío
-    if (!createFormData.nombre.trim()) {
-      showAlerta(
-        'El nombre de la cohorte es requerido',
-        'error',
-        'Campos incompletos'
-      )
-      return
-    }
-
-    // Crear el objeto CohorteDTO que será enviado al backend
-    const cohorteDTO = {
-      nombre: createFormData.nombre
-    }
-
-    fetch(`${backendUrl}/api/cohortes/crear`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cohorteDTO)
     })
       .then((response) => {
-        if (response.ok) {
-          return response.json()
-        } else {
-          return response.json().then((data) => {
-            throw new Error(data.mensaje || 'Error al crear la cohorte')
-          })
-        }
+        if (response.ok) return response.json()
+        return response.json().then((data) => { throw new Error(data.mensaje || 'Error al actualizar la cohorte') })
       })
       .then((data) => {
-        setIsCreateModalOpen(false) // Cerrar el modal de creación
-        setCreateFormData({ nombre: '' }) // Resetear el formulario
-        fetchCohortes() // Refrescar la lista de cohortes
-        showAlerta(
-          data.mensaje || 'Cohorte creada exitosamente',
-          'success',
-          'Cohorte creada'
-        )
+        setIsEditModalOpen(false)
+        fetchCohortes()
+        showAlerta(data.mensaje || 'Cohorte actualizada exitosamente', 'success', 'Cohorte actualizada')
       })
-      .catch((error) => {
-        showAlerta(error.message, 'error', 'Error al crear')
-      })
+      .catch((error) => { showAlerta(error.message, 'error', 'Error al actualizar') })
   }
 
-  // Columnas, filtros y acciones
+  const handleCreateSubmit = () => {
+    if (!createFormData.nombre.trim()) {
+      showAlerta('El nombre de la cohorte es requerido', 'error', 'Campos incompletos')
+      return
+    }
+    const cohorteDTO = { nombre: createFormData.nombre }
+    fetch(`${backendUrl}/api/cohortes/crear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cohorteDTO)
+    })
+      .then((response) => {
+        if (response.ok) return response.json()
+        return response.json().then((data) => { throw new Error(data.mensaje || 'Error al crear la cohorte') })
+      })
+      .then((data) => {
+        setIsCreateModalOpen(false)
+        setCreateFormData({ nombre: '' })
+        fetchCohortes()
+        showAlerta(data.mensaje || 'Cohorte creada exitosamente', 'success', 'Cohorte creada')
+      })
+      .catch((error) => { showAlerta(error.message, 'error', 'Error al crear') })
+  }
+
   const columnas = ['Id', 'Nombre', 'Fecha de creación']
   const filtros = ['Nombre']
   const acciones = [
-    {
-      icono: <Eye size={18} />,
-      tooltip: 'Ver detalles',
-      accion: handleViewCohorte
-    },
-    {
-      icono: <Pencil size={18} />,
-      tooltip: 'Editar',
-      accion: handleEditCohorte
-    }
+    { icono: <Eye size={18} />, tooltip: 'Ver detalles', accion: handleViewCohorte },
+    { icono: <Pencil size={18} />, tooltip: 'Editar', accion: handleEditCohorte }
+  ]
+
+  const accionesSoloVer = [
+    { icono: <Eye size={18} />, tooltip: 'Ver detalles', accion: handleViewCohorte }
   ]
 
   return (
     <div className='w-full p-4'>
       <div className='w-full flex items-center justify-between mb-8'>
         <p className='text-center text-titulos flex-1'>Lista de Cohortes</p>
-        <Boton onClick={() => setIsCreateModalOpen(true)} color='danger'>
-          Crear cohorte
-        </Boton>
+        {!isGoogleUser && (
+          <Boton onClick={() => setIsCreateModalOpen(true)} color='danger'>
+            Crear cohorte
+          </Boton>
+        )}
       </div>
 
-      {/* Tabla principal */}
       <Tabla
         informacion={informacion}
         columnas={columnas}
         filtros={filtros}
-        acciones={acciones}
+        acciones={isGoogleUser ? accionesSoloVer : acciones}
         elementosPorPagina={10}
         cargandoContenido={cargandoCohortes}
       />
 
-      {/* Modal para ver detalles */}
       <Modal
         isOpen={isViewModalOpen}
         onOpenChange={setIsViewModalOpen}
-        cabecera={`Detalles de la Cohorte`}
+        cabecera='Detalles de la Cohorte'
         size='5xl'
         cuerpo={
           cohorteDetails && (
             <div className='w-full flex flex-col'>
-              {/* Nombre y Fecha de Creación en dos columnas */}
               <div className='w-full grid grid-cols-2 gap-4 mb-4'>
                 <div>
                   <Input
                     classNames={{
                       label: `w-1/3 h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
                       base: 'flex items-start',
-                      inputWrapper:
-                        'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
+                      inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
                       mainWrapper: 'w-full'
                     }}
                     label='Nombre'
@@ -252,8 +185,7 @@ const Cohortes = () => {
                     classNames={{
                       label: `w-1/3 h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
                       base: 'flex items-start',
-                      inputWrapper:
-                        'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
+                      inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
                       mainWrapper: 'w-full'
                     }}
                     label='Fecha de Creación'
@@ -261,65 +193,51 @@ const Cohortes = () => {
                     name='fechaCreacion'
                     type='text'
                     readOnly
-                    value={new Date(
-                      cohorteDetails.fechaCreacion
-                    ).toLocaleDateString()}
+                    value={new Date(cohorteDetails.fechaCreacion).toLocaleDateString()}
                   />
                 </div>
               </div>
 
               <div className='w-full mb-4'>
                 <p className='font-medium mb-2'>Grupos asociados</p>
-                {cohorteDetails.cohortesGrupos &&
-                cohorteDetails.cohortesGrupos.length > 0 ? (
+                {cohorteDetails.cohortesGrupos && cohorteDetails.cohortesGrupos.length > 0 ? (
                   <div className='flex flex-row gap-4'>
-                    {/* Primer grupo */}
                     <div className='w-1/2'>
                       <Input
                         classNames={{
                           label: `mb-2`,
                           base: 'flex flex-col w-full',
-                          inputWrapper:
-                            'border border-gris-institucional rounded-[15px] w-full max-h-[40px]'
+                          inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]'
                         }}
-                        label={`Grupo A`}
+                        label='Grupo A'
                         labelPlacement='outside'
                         name='grupoA'
                         type='text'
                         readOnly
-                        value={
-                          cohorteDetails.cohortesGrupos[0]?.nombre ||
-                          'No asignado'
-                        }
+                        value={cohorteDetails.cohortesGrupos[0]?.nombre || 'No asignado'}
                       />
                     </div>
-                    {/* Segundo grupo (si existe) */}
                     <div className='w-1/2'>
                       {cohorteDetails.cohortesGrupos.length > 1 ? (
                         <Input
                           classNames={{
                             label: `mb-2`,
                             base: 'flex flex-col w-full',
-                            inputWrapper:
-                              'border border-gris-institucional rounded-[15px] w-full max-h-[40px]'
+                            inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]'
                           }}
-                          label={`Grupo B`}
+                          label='Grupo B'
                           labelPlacement='outside'
                           name='grupoB'
                           type='text'
                           readOnly
-                          value={
-                            cohorteDetails.cohortesGrupos[1]?.nombre ||
-                            'No asignado'
-                          }
+                          value={cohorteDetails.cohortesGrupos[1]?.nombre || 'No asignado'}
                         />
                       ) : (
                         <Input
                           classNames={{
                             label: `mb-2`,
                             base: 'flex flex-col w-full',
-                            inputWrapper:
-                              'border border-gris-institucional rounded-[15px] w-full max-h-[40px]'
+                            inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]'
                           }}
                           label='Grupo B'
                           labelPlacement='outside'
@@ -342,7 +260,6 @@ const Cohortes = () => {
         }
       />
 
-      {/* Modal para editar */}
       <Modal
         isOpen={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
@@ -351,16 +268,16 @@ const Cohortes = () => {
         cuerpo={
           <form className='space-y-4'>
             <div className='flex flex-col gap-1'>
-  <label className='text-sm'>Nombre del cohorte *</label>
-  <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-    <input
-      className='w-full outline-none bg-transparent text-sm'
-      placeholder='Ej: 2025-I'
-      value={editFormData.nombre}
-      onChange={(e) => setEditFormData({ ...editFormData, nombre: e.target.value })}
-    />
-  </div>
-</div>
+              <label className='text-sm'>Nombre del cohorte *</label>
+              <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+                <input
+                  className='w-full outline-none bg-transparent text-sm'
+                  placeholder='Ej: 2025-I'
+                  value={editFormData.nombre}
+                  onChange={(e) => setEditFormData({ ...editFormData, nombre: e.target.value })}
+                />
+              </div>
+            </div>
           </form>
         }
         footer={
@@ -370,7 +287,6 @@ const Cohortes = () => {
         }
       />
 
-      {/* Modal para crear nueva cohorte */}
       <Modal
         isOpen={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
@@ -379,16 +295,16 @@ const Cohortes = () => {
         cuerpo={
           <form className='space-y-4'>
             <div className='flex flex-col gap-1'>
-  <label className='text-sm'>Nombre del cohorte *</label>
-  <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-    <input
-      className='w-full outline-none bg-transparent text-sm'
-      placeholder='Ej: 2025-I'
-      value={createFormData.nombre}
-      onChange={(e) => setCreateFormData({ ...createFormData, nombre: e.target.value })}
-    />
-  </div>
-</div>
+              <label className='text-sm'>Nombre del cohorte *</label>
+              <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+                <input
+                  className='w-full outline-none bg-transparent text-sm'
+                  placeholder='Ej: 2025-I'
+                  value={createFormData.nombre}
+                  onChange={(e) => setCreateFormData({ ...createFormData, nombre: e.target.value })}
+                />
+              </div>
+            </div>
           </form>
         }
         footer={
@@ -398,7 +314,6 @@ const Cohortes = () => {
         }
       />
 
-      {/* AlertaModal para mostrar mensajes de éxito o error */}
       <AlertaModal
         isOpen={alertaModalOpen}
         onClose={() => setAlertaModalOpen(false)}
