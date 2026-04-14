@@ -5,9 +5,7 @@ import { jwtDecode } from 'jwt-decode'
 
 // Rutas que solo pueden ser accedidas por administradores
 const ADMIN_ONLY_ROUTES = [
-  '/academico',
-  '/matricula',
-  '/usuarios',
+  
   '/pregrado',
   '/posgrado',
   '/admin'

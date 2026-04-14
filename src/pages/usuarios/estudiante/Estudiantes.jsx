@@ -12,9 +12,18 @@ const Estudiantes = () => {
   const backendUrl = getBackendUrl()
   const Navigate = useNavigate()
 
+  // ← NUEVO: detectar si es usuario de Google y su programa
+  const googleToken = localStorage.getItem('googleToken')
+  const isGoogleUser = !!googleToken
+  const programaIdEstudiante = localStorage.getItem('programaIdEstudiante')
+
   useEffect(() => {
     setCargandoEstudiantes(true)
-    fetch(`${backendUrl}/estudiantes`)
+    // ← NUEVO: si es Google, filtrar por programa; si no, traer todos
+    const url = isGoogleUser && programaIdEstudiante
+      ? `${backendUrl}/api/estudiantes/listar/programa/${programaIdEstudiante}`
+      : `${backendUrl}/api/estudiantes`
+    fetch(url)
       .then((response) => response.json())
       .then((data) => {
         setEstudiantes(data)
@@ -78,14 +87,14 @@ const Estudiantes = () => {
     <div className='p-4 w-full flex flex-col items-center justify-center'>
       <div className='w-full flex items-center justify-between mb-8'>
         <p className='text-center text-titulos flex-1'>Lista de estudiantes</p>
-        <Boton onClick={handleRegistrar}>Crear estudiante</Boton>
+        {!isGoogleUser && <Boton onClick={handleRegistrar}>Crear estudiante</Boton>}
       </div>
       <div className='w-full my-8'>
         <Tabla
           informacion={informacion}
           columnas={columnas}
           filtros={filtros}
-          acciones={acciones}
+          acciones={isGoogleUser ? [] : acciones}
           cargandoContenido={cargandoEstudiantes}
         />
       </div>

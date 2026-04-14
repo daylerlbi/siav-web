@@ -31,6 +31,11 @@ const Materias = () => {
   const [alertMessage, setAlertMessage] = useState('')
   const [maxSemestres, setMaxSemestres] = useState(0)
 
+  // ← NUEVO: detectar si es usuario de Google y su pensum
+  const googleToken = localStorage.getItem('googleToken')
+  const isGoogleUser = !!googleToken
+  const pensumIdEstudiante = localStorage.getItem('pensumIdEstudiante')
+
   const codigoErrors = []
   if (codigo === '') codigoErrors.push('Este campo es obligatorio')
 
@@ -65,7 +70,12 @@ const Materias = () => {
   const cargarDatos = async () => {
     setCargandoMaterias(true)
     try {
-      const materiasResponse = await fetch(`${backendUrl}/api/materias/listar`)
+      // ← NUEVO: si es Google, filtrar materias por pensum del estudiante
+      const materiasUrl = isGoogleUser && pensumIdEstudiante
+        ? `${backendUrl}/api/materias/pensum/${pensumIdEstudiante}`
+        : `${backendUrl}/api/materias/listar`
+
+      const materiasResponse = await fetch(materiasUrl)
       const materiasData = await materiasResponse.json()
       setMaterias(materiasData)
       const pensumsResponse = await fetch(`${backendUrl}/api/pensums/listar`)
@@ -263,17 +273,21 @@ const Materias = () => {
     { icono: <Pencil className='text-[25px]' />, tooltip: 'Editar', accion: (materia) => prepararEdicion(materia) }
   ]
 
+  const accionesSoloVer = [
+    { icono: <Eye className='text-[25px]' />, tooltip: 'Ver', accion: (materia) => verMateria(materia) }
+  ]
+
   return (
     <div className='flex flex-col items-center justify-center p-4 w-full'>
       <div className='w-full flex items-center justify-between mb-8'>
         <p className='text-center text-titulos flex-1'>Lista de materias</p>
-        <Boton onClick={() => { limpiarFormulario(); setIsOpenForm(true) }}>Crear materia</Boton>
+        {!isGoogleUser && <Boton onClick={() => { limpiarFormulario(); setIsOpenForm(true) }}>Crear materia</Boton>}
       </div>
       <div className='w-full my-8'>
         <Tabla
           columnas={columnas}
           informacion={informacion}
-          acciones={acciones}
+          acciones={isGoogleUser ? accionesSoloVer : acciones}
           filtros={filtros}
           elementosPorPagina={10}
           cargandoContenido={cargandoMaterias}

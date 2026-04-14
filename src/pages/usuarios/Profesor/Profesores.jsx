@@ -12,9 +12,13 @@ const Profesores = () => {
   const backendUrl = getBackendUrl()
   const Navigate = useNavigate()
 
+  // ← NUEVO: detectar si es usuario de Google
+  const googleToken = localStorage.getItem('googleToken')
+  const isGoogleUser = !!googleToken
+
   useEffect(() => {
     setCargandoProfesores(true)
-    fetch(`${backendUrl}/usuarios/rol/2`)
+    fetch(`${backendUrl}/api/usuarios/rol/2`)
       .then((response) => response.json())
       .then((data) => {
         setProfesores(data)
@@ -40,7 +44,6 @@ const Profesores = () => {
           'Correo electrónico': profesor.email
         }
       })
-
       setInformacion(profesoresConDatos)
     }
     setCargandoProfesores(false)
@@ -69,6 +72,14 @@ const Profesores = () => {
     }
   ]
 
+  const accionesSoloVer = [
+    {
+      icono: <Eye className='text-[25px]' />,
+      tooltip: 'Ver',
+      accion: (profesor) => verProfesor(profesor)
+    }
+  ]
+
   const handleRegistrar = () => {
     Navigate('crear-profesor')
   }
@@ -77,14 +88,14 @@ const Profesores = () => {
     <div className='p-4 w-full flex flex-col items-center justify-center'>
       <div className='w-full flex items-center justify-between mb-8'>
         <p className='text-center text-titulos flex-1'>Lista de profesores</p>
-        <Boton onClick={handleRegistrar}>Crear profesor</Boton>
+        {!isGoogleUser && <Boton onClick={handleRegistrar}>Crear profesor</Boton>}
       </div>
       <div className='w-full my-8'>
         <Tabla
           informacion={informacion}
           columnas={columnas}
           filtros={filtros}
-          acciones={acciones}
+          acciones={isGoogleUser ? accionesSoloVer : acciones}
           cargandoContenido={cargandoProfesores}
         />
       </div>
