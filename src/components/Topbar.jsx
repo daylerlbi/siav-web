@@ -6,51 +6,46 @@ import { useAuth } from '../lib/hooks/useAuth'
 
 const Topbar = () => {
   const Navigate = useNavigate()
-  const { authType, logout, userLoggedSetter } = useAuth()
-  
+  const { authType, logout, refreshUserFromToken } = useAuth()
   const [nombre, setNombre] = useState('')
   const [fotoUrl, setFotoUrl] = useState('')
 
   useEffect(() => {
-    // Obtener datos del usuario según el tipo de autenticación
     const getUserInfo = () => {
-      // Verificar si existe un usuario de Google
-      const googleUser = localStorage.getItem('googleToken')
-      // Verificar si existe un usuario administrador
+      const googleToken = localStorage.getItem('googleToken')
       const adminUser = localStorage.getItem('userInfo')
-      
-      if (googleUser) {
-        const user = userLoggedSetter(googleUser)
-        setNombre(user.firstName + " " + user.lastName || '')
-        setFotoUrl(user.picture || "https://placehold.co/250x250/4477ba/blue?text=User")
+
+      if (googleToken) {
+        const user = refreshUserFromToken()
+        console.log('user retornado:', user)
+        console.log('picture:', user?.picture)
+        if (user) {
+          setNombre((user.firstName || '') + ' ' + (user.lastName || ''))
+          setFotoUrl(user.picture || 'https://placehold.co/250x250/4477ba/blue?text=User')
+        }
       } else if (adminUser) {
         const user = JSON.parse(adminUser)
         setNombre(user.nombre || '')
-        setFotoUrl('') // Administradores no tienen foto por defecto
+        setFotoUrl('')
       } else {
-        // Si no hay información de usuario, usar valores por defecto
         setNombre('')
         setFotoUrl('')
       }
     }
-    
+
     getUserInfo()
-    
-    // Configurar un listener para actualizar si cambia el almacenamiento local
-    const handleStorageChange = () => {
-      getUserInfo()
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
+
+    window.addEventListener('storage', getUserInfo)
+    window.addEventListener('googleTokenGuardado', getUserInfo)
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('storage', getUserInfo)
+      window.removeEventListener('googleTokenGuardado', getUserInfo)
     }
   }, [])
 
   const logOut = () => {
-    // Usar la función de logout del hook useAuth para una limpieza completa
     logout()
-    // Determinar a qué página redirigir según el tipo de autenticación
     if (authType === 'google') {
       Navigate('/login')
     } else {
@@ -69,6 +64,7 @@ const Topbar = () => {
         }
         alt='foto de perfil'
         className='h-[35px] mx-6 rounded-full'
+        referrerPolicy='no-referrer'
       />
       <a onClick={logOut} className='cursor-pointer'>
         <Tooltip

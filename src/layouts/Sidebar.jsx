@@ -21,10 +21,11 @@ const Sidebar = () => {
   const backendUrl = getBackendUrl()
   const [programas, setProgramas] = useState([])
   const [userRole, setUserRole] = useState(null)
+  const [googleRole, setGoogleRole] = useState(null) // Rol dentro del token de Google (ej: 'Director')
 
   const detectarRol = () => {
     const userInfo = localStorage.getItem('userInfo')
-    const googleUser = localStorage.getItem('googleToken')
+    const googleToken = localStorage.getItem('googleToken')
 
     if (userInfo) {
       try {
@@ -43,7 +44,15 @@ const Sidebar = () => {
         console.error('Error al parsear userInfo:', error)
         return null
       }
-    } else if (googleUser) {
+    } else if (googleToken) {
+      // Decodificar el JWT para obtener el rol interno (Director, Estudiante, etc.)
+      try {
+        const payload = JSON.parse(atob(googleToken.split('.')[1]))
+        console.log('Payload del token Google:', payload)
+        setGoogleRole(payload.role || payload.rol || null)
+      } catch (e) {
+        console.error('Error al decodificar googleToken:', e)
+      }
       return 'ROLE_GOOGLE'
     }
     return null
@@ -122,14 +131,20 @@ const Sidebar = () => {
   }, [selectedOption])
 
   const shouldShowMenu = (menuName) => {
-    console.log('userRole actual:', userRole, '| menuName:', menuName)
+    console.log('userRole:', userRole, '| googleRole:', googleRole, '| menuName:', menuName)
 
-    if (userRole === 'ROLE_GOOGLE') {
+    // Director de programa (login Google con rol Director)
+    if (userRole === 'ROLE_GOOGLE' && googleRole === 'Director') {
       return (
         menuName === 'Académico' ||
         menuName === 'Matrícula' ||
         menuName === 'Usuarios'
       )
+    }
+
+    // Cualquier otro usuario de Google que no sea Director
+    if (userRole === 'ROLE_GOOGLE') {
+      return menuName === 'Proyectos'
     }
 
     if (!userRole) return false
