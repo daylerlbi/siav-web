@@ -137,8 +137,8 @@ const Sidebar = () => {
     if (userRole === 'ROLE_GOOGLE' && googleRole === 'Director') {
       return (
         menuName === 'Académico' ||
-        menuName === 'Matrícula' ||
-        menuName === 'Usuarios'
+        menuName === 'Matrícula' 
+       
       )
     }
 

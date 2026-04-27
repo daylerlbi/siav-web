@@ -31,10 +31,9 @@ const Materias = () => {
   const [alertMessage, setAlertMessage] = useState('')
   const [maxSemestres, setMaxSemestres] = useState(0)
 
-  // ← NUEVO: detectar si es usuario de Google y su pensum
   const googleToken = localStorage.getItem('googleToken')
   const isGoogleUser = !!googleToken
-  const pensumIdEstudiante = localStorage.getItem('pensumIdEstudiante')
+  const estudianteId = localStorage.getItem('estudianteId')
 
   const codigoErrors = []
   if (codigo === '') codigoErrors.push('Este campo es obligatorio')
@@ -70,9 +69,8 @@ const Materias = () => {
   const cargarDatos = async () => {
     setCargandoMaterias(true)
     try {
-      // ← NUEVO: si es Google, filtrar materias por pensum del estudiante
-      const materiasUrl = isGoogleUser && pensumIdEstudiante
-        ? `${backendUrl}/api/materias/pensum/${pensumIdEstudiante}`
+      const materiasUrl = isGoogleUser && estudianteId
+        ? `${backendUrl}/api/estudiantes/${estudianteId}/materias`
         : `${backendUrl}/api/materias/listar`
 
       const materiasResponse = await fetch(materiasUrl)
@@ -91,7 +89,7 @@ const Materias = () => {
   useEffect(() => {
     if (materias.length > 0 && pensums.length > 0) {
       const materiasConPensums = materias.map((materia) => {
-        const pensum = pensums.find((p) => p.id === materia.pensumId)
+        const pensum = pensums.find((p) => p.id === materia.pensumId?.id)
         return {
           id: materia.id,
           Código: materia.codigo,

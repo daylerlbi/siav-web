@@ -4,7 +4,6 @@ import { Pencil, Eye } from 'lucide-react'
 import Modal from '../../components/Modal'
 import Boton from '../../components/Boton'
 import AlertaModal from '../../components/AlertaModal'
-import { Input } from '@heroui/react'
 import { getBackendUrl } from '../../lib/controllers/endpoints'
 
 const Cohortes = () => {
@@ -23,7 +22,6 @@ const Cohortes = () => {
   const [cargandoCohortes, setCargandoCohortes] = useState(true)
   const backendUrl = getBackendUrl()
 
-  // ← NUEVO: detectar si es usuario de Google
   const googleToken = localStorage.getItem('googleToken')
   const isGoogleUser = !!googleToken
 
@@ -164,37 +162,25 @@ const Cohortes = () => {
           cohorteDetails && (
             <div className='w-full flex flex-col'>
               <div className='w-full grid grid-cols-2 gap-4 mb-4'>
-                <div>
-                  <Input
-                    classNames={{
-                      label: `w-1/3 h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
-                      base: 'flex items-start',
-                      inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
-                      mainWrapper: 'w-full'
-                    }}
-                    label='Nombre'
-                    labelPlacement='outside-left'
-                    name='nombre'
-                    type='text'
-                    readOnly
-                    value={cohorteDetails.nombre || ''}
-                  />
+                <div className='flex flex-col gap-1'>
+                  <label className='text-sm'>Nombre</label>
+                  <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+                    <input
+                      className='w-full outline-none bg-transparent text-sm'
+                      readOnly
+                      value={cohorteDetails.nombre || ''}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Input
-                    classNames={{
-                      label: `w-1/3 h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
-                      base: 'flex items-start',
-                      inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
-                      mainWrapper: 'w-full'
-                    }}
-                    label='Fecha de Creación'
-                    labelPlacement='outside-left'
-                    name='fechaCreacion'
-                    type='text'
-                    readOnly
-                    value={new Date(cohorteDetails.fechaCreacion).toLocaleDateString()}
-                  />
+                <div className='flex flex-col gap-1'>
+                  <label className='text-sm'>Fecha de Creación</label>
+                  <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+                    <input
+                      className='w-full outline-none bg-transparent text-sm'
+                      readOnly
+                      value={new Date(cohorteDetails.fechaCreacion).toLocaleDateString()}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -202,51 +188,25 @@ const Cohortes = () => {
                 <p className='font-medium mb-2'>Grupos asociados</p>
                 {cohorteDetails.cohortesGrupos && cohorteDetails.cohortesGrupos.length > 0 ? (
                   <div className='flex flex-row gap-4'>
-                    <div className='w-1/2'>
-                      <Input
-                        classNames={{
-                          label: `mb-2`,
-                          base: 'flex flex-col w-full',
-                          inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]'
-                        }}
-                        label='Grupo A'
-                        labelPlacement='outside'
-                        name='grupoA'
-                        type='text'
-                        readOnly
-                        value={cohorteDetails.cohortesGrupos[0]?.nombre || 'No asignado'}
-                      />
+                    <div className='w-1/2 flex flex-col gap-1'>
+                      <label className='text-sm'>Grupo A</label>
+                      <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+                        <input
+                          className='w-full outline-none bg-transparent text-sm'
+                          readOnly
+                          value={cohorteDetails.cohortesGrupos[0]?.nombre || 'No asignado'}
+                        />
+                      </div>
                     </div>
-                    <div className='w-1/2'>
-                      {cohorteDetails.cohortesGrupos.length > 1 ? (
-                        <Input
-                          classNames={{
-                            label: `mb-2`,
-                            base: 'flex flex-col w-full',
-                            inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]'
-                          }}
-                          label='Grupo B'
-                          labelPlacement='outside'
-                          name='grupoB'
-                          type='text'
+                    <div className='w-1/2 flex flex-col gap-1'>
+                      <label className='text-sm'>Grupo B</label>
+                      <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
+                        <input
+                          className='w-full outline-none bg-transparent text-sm'
                           readOnly
                           value={cohorteDetails.cohortesGrupos[1]?.nombre || 'No asignado'}
                         />
-                      ) : (
-                        <Input
-                          classNames={{
-                            label: `mb-2`,
-                            base: 'flex flex-col w-full',
-                            inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]'
-                          }}
-                          label='Grupo B'
-                          labelPlacement='outside'
-                          name='grupoB'
-                          type='text'
-                          readOnly
-                          value='No asignado'
-                        />
-                      )}
+                      </div>
                     </div>
                   </div>
                 ) : (

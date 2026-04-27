@@ -25,54 +25,56 @@ const Programas = () => {
   const moodleUrl = getMoodleUrl()
   const moodleToken = getMoodleToken()
 
-  // ← NUEVO: detectar si es usuario de Google y su programa
+  // ✅ Detectar si es usuario Google y su rol
   const googleToken = localStorage.getItem('googleToken')
   const isGoogleUser = !!googleToken
-  const programaIdEstudiante = localStorage.getItem('programaIdEstudiante')
+  const googleRole = googleToken ? (() => {
+    try { return JSON.parse(atob(googleToken.split('.')[1])).role || null }
+    catch { return null }
+  })() : null
+  const isDirector = isGoogleUser && googleRole === 'Director'
+
+  // ID del usuario director desde el token
+  const directorId = googleToken ? (() => {
+    try { return JSON.parse(atob(googleToken.split('.')[1])).id || null }
+    catch { return null }
+  })() : null
 
   const [isAlertOpen, setIsAlertOpen] = useState(false)
   const [alertType, setAlertType] = useState('success')
   const [alertMessage, setAlertMessage] = useState(null)
 
   const codigoErrors = []
-  if (codigo === '') {
-    codigoErrors.push('Este campo es obligatorio')
-  }
-  if (codigo && !/^\d+$/.test(codigo)) {
-    codigoErrors.push('Solo puede contener números')
-  }
-  if (codigo && codigo.length < 3) {
-    codigoErrors.push('El código debe tener al menos 3 caracteres')
-  }
+  if (codigo === '') codigoErrors.push('Este campo es obligatorio')
+  if (codigo && !/^\d+$/.test(codigo)) codigoErrors.push('Solo puede contener números')
+  if (codigo && codigo.length < 3) codigoErrors.push('El código debe tener al menos 3 caracteres')
 
   const programaErrors = []
-  if (programa === '') {
-    programaErrors.push('Este campo es obligatorio')
+  if (programa === '') programaErrors.push('Este campo es obligatorio')
+
+  const procesarProgramas = (data) => {
+    const programasCompletos = data.map((programa) => ({
+      ...programa,
+      Nombre: programa.nombre,
+      Código: programa.codigo,
+      Id: programa.id
+    }))
+    setProgramasPosgrado(programasCompletos.filter((p) => p.esPosgrado === true))
+    setProgramasPregrado(programasCompletos.filter((p) => p.esPosgrado === false))
+    setCargandoProgramas(false)
   }
 
   useEffect(() => {
     setCargandoProgramas(true)
-    fetch(`${backendUrl}/api/programas/listar`)
+
+    // ✅ Si es Director, llama al endpoint filtrado por directorId
+    const url = isDirector && directorId
+      ? `${backendUrl}/api/programas/listar/director/${directorId}`
+      : `${backendUrl}/api/programas/listar`
+
+    fetch(url)
       .then((response) => response.json())
-      .then((data) => {
-        const programasCompletos = data.map((programa) => ({
-          ...programa,
-          Nombre: programa.nombre,
-          Código: programa.codigo,
-          Id: programa.id
-        }))
-        // ← NUEVO: filtrar por programa del estudiante si es Google
-        const posgrados = programasCompletos.filter((p) => p.esPosgrado === true)
-        const pregrados = programasCompletos.filter((p) => p.esPosgrado === false)
-        if (isGoogleUser && programaIdEstudiante) {
-          setProgramasPosgrado(posgrados.filter((p) => p.id === parseInt(programaIdEstudiante)))
-          setProgramasPregrado(pregrados.filter((p) => p.id === parseInt(programaIdEstudiante)))
-        } else {
-          setProgramasPosgrado(posgrados)
-          setProgramasPregrado(pregrados)
-        }
-        setCargandoProgramas(false)
-      })
+      .then((data) => procesarProgramas(data))
 
     fetch(`${backendUrl}/api/programas/tipos-programa`)
       .then((response) => response.json())
@@ -81,27 +83,14 @@ const Programas = () => {
 
   const cargarProgramas = async () => {
     setCargandoProgramas(true)
-    fetch(`${backendUrl}/api/programas/listar`)
+
+    const url = isDirector && directorId
+      ? `${backendUrl}/api/programas/listar/director/${directorId}`
+      : `${backendUrl}/api/programas/listar`
+
+    fetch(url)
       .then((response) => response.json())
-      .then((data) => {
-        const programasCompletos = data.map((programa) => ({
-          ...programa,
-          Nombre: programa.nombre,
-          Código: programa.codigo,
-          Id: programa.id
-        }))
-        // ← NUEVO: filtrar por programa del estudiante si es Google
-        const posgrados = programasCompletos.filter((p) => p.esPosgrado === true)
-        const pregrados = programasCompletos.filter((p) => p.esPosgrado === false)
-        if (isGoogleUser && programaIdEstudiante) {
-          setProgramasPosgrado(posgrados.filter((p) => p.id === parseInt(programaIdEstudiante)))
-          setProgramasPregrado(pregrados.filter((p) => p.id === parseInt(programaIdEstudiante)))
-        } else {
-          setProgramasPosgrado(posgrados)
-          setProgramasPregrado(pregrados)
-        }
-        setCargandoProgramas(false)
-      })
+      .then((data) => procesarProgramas(data))
   }
 
   const prepararEdicion = (programa) => {
@@ -332,7 +321,6 @@ const Programas = () => {
                 </ul>
               )}
             </div>
-
             <div className='flex flex-col gap-1 w-full py-4'>
               <label className='text-sm'>Nombre *</label>
               <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
@@ -350,7 +338,6 @@ const Programas = () => {
                 </ul>
               )}
             </div>
-
             <div className='flex flex-col gap-2 py-2'>
               <p className='text-normal'>Nivel académico</p>
               <RadioGroup
@@ -363,7 +350,6 @@ const Programas = () => {
                 <Radio value='pregrado'>Pregrado</Radio>
               </RadioGroup>
             </div>
-
             <div className='w-full flex justify-end mb-[-20px]'>
               <Boton type='submit'>
                 {modoEdicion ? 'Guardar cambios' : 'Crear programa'}
@@ -372,7 +358,6 @@ const Programas = () => {
           </form>
         }
       />
-
       <AlertaModal
         isOpen={isAlertOpen}
         onClose={() => setIsAlertOpen(false)}

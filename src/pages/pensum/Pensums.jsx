@@ -13,6 +13,7 @@ const Pensum = () => {
   const [informacion, setInformacion] = useState([])
   const [cargandoPensums, setCargandoPensums] = useState(true)
   const backendUrl = getBackendUrl()
+  const isGoogleUser = !!localStorage.getItem('googleToken')
   const [isOpen, setIsOpen] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
   const [pensumId, setPensumId] = useState(null)
@@ -149,7 +150,7 @@ const Pensum = () => {
   const procesarSemestresPrograma = async (programaId) => {
     try {
       const programaData = await obtenerSemestresPrograma(programaId)
-      if (!programaData.moodleId) { console.warn('El programa no tiene un moodleId asociado'); return false }
+      if (!programaData.moodleId) return false
       const semestresParaProcesar = programaData.semestres
         .filter((s) => s.moodleId === null)
         .sort((a, b) => a.numero - b.numero)
@@ -159,13 +160,11 @@ const Pensum = () => {
           const moodleId = await crearCategoriaSemestreEnMoodle(semestre, programaData)
           await actualizarMoodleIdSemestre(semestre.id, moodleId)
         } catch (error) {
-          console.error(`Error procesando semestre ${semestre.nombre}:`, error)
           todosProcesadosCorrectamente = false
         }
       }
       return todosProcesadosCorrectamente
     } catch (error) {
-      console.error('Error procesando semestres:', error)
       return false
     }
   }
@@ -231,19 +230,17 @@ const Pensum = () => {
 
   const columnas = ['Id', 'Nombre', 'Nombre del programa académico', 'Cantidad de semestres']
   const filtros = ['Nombre', 'Nombre del programa académico']
-  const acciones = [
-    {
-      icono: <Pencil className='text-[25px]' />,
-      tooltip: 'Editar',
-      accion: (pensum) => prepararEdicion(pensum)
-    }
-  ]
+  const acciones = isGoogleUser
+    ? []
+    : [{ icono: <Pencil className='text-[25px]' />, tooltip: 'Editar', accion: (pensum) => prepararEdicion(pensum) }]
 
   return (
     <div className='w-full p-4 flex flex-col items-center justify-center'>
       <div className='w-full flex items-center justify-between mb-8'>
         <p className='text-center text-titulos flex-1'>Lista de pénsums</p>
-        <Boton onClick={() => { limpiarFormulario(); setIsOpen(true) }}>Crear pensum</Boton>
+        {!isGoogleUser && (
+          <Boton onClick={() => { limpiarFormulario(); setIsOpen(true) }}>Crear pensum</Boton>
+        )}
       </div>
       <div className='w-full my-8'>
         <Tabla

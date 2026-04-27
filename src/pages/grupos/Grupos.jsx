@@ -16,6 +16,7 @@ const Grupos = () => {
   const backendUrl = getBackendUrl()
   const moodleUrl = getMoodleUrl()
   const moodleToken = getMoodleToken()
+  const isGoogleUser = !!localStorage.getItem('googleToken')
   // Estados para el modal de creación
   const [isOpen, setIsOpen] = useState(false)
   const [isOpenView, setIsOpenView] = useState(false)
@@ -67,7 +68,6 @@ const Grupos = () => {
 
   useEffect(() => {
     cargarDatos()
-    // Cargar la lista de programas
     fetch(`${backendUrl}/api/programas/listar`)
       .then((response) => response.json())
       .then((data) => {
@@ -80,14 +80,12 @@ const Grupos = () => {
       })
   }, [])
 
-  // Efecto para cargar pensums cuando se selecciona un programa
   useEffect(() => {
     if (programaId) {
       fetch(`${backendUrl}/api/pensums/programa/${programaId}`)
         .then((response) => response.json())
         .then((data) => {
           setPensums(data)
-          // Reset pensum and materia selection
           setPensumId('')
           setMateriaId('')
           setMaterias([])
@@ -100,7 +98,6 @@ const Grupos = () => {
     }
   }, [programaId])
 
-  // Efecto para cargar materias cuando se selecciona un pensum
   useEffect(() => {
     if (pensumId) {
       fetch(`${backendUrl}/api/materias/pensum/${pensumId}`)
@@ -136,20 +133,16 @@ const Grupos = () => {
     fetch(`${backendUrl}/api/cohortes/listar`)
       .then((response) => response.json())
       .then((data) => {
-        // Una vez que tenemos las cohortes, obtenemos los grupos de cada cohorte
         const fetchGruposPromises = data.map((cohorte) => {
           return fetch(`${backendUrl}/api/cohortes/${cohorte.id}`)
             .then((response) => response.json())
             .then((cohortesData) => {
-              // Devolvemos los grupos de esta cohorte
               return cohortesData.cohortesGrupos || []
             })
         })
 
-        // Esperamos a que todas las peticiones terminen
         Promise.all(fetchGruposPromises)
           .then((resultados) => {
-            // Aplanamos el array de arrays de grupos
             const todosLosGrupos = resultados.flat()
             setGruposCohorte(todosLosGrupos)
           })
@@ -176,7 +169,6 @@ const Grupos = () => {
         setIsAlertOpen(true)
       })
 
-    // Cargar materias para el formulario
     fetch(`${backendUrl}/api/materias/listar`)
       .then((response) => response.json())
       .then((data) => {
@@ -207,21 +199,13 @@ const Grupos = () => {
   const columnas = ['Código', 'Nombre', 'Cohorte', 'Profesor']
   const filtros = ['Código', 'Nombre', 'Cohorte', 'Profesor']
 
-  // Acciones para la tabla
-  const acciones = [
-    {
-      icono: <Eye className='text-[25px]' />,
-      tooltip: 'Ver',
-      accion: (grupo) => verGrupo(grupo)
-    },
-    {
-      icono: <Pencil className='text-[25px]' />,
-      tooltip: 'Editar',
-      accion: (grupo) => prepararEdicion(grupo)
-    }
-  ]
+  const acciones = isGoogleUser
+    ? [{ icono: <Eye className='text-[25px]' />, tooltip: 'Ver', accion: (grupo) => verGrupo(grupo) }]
+    : [
+        { icono: <Eye className='text-[25px]' />, tooltip: 'Ver', accion: (grupo) => verGrupo(grupo) },
+        { icono: <Pencil className='text-[25px]' />, tooltip: 'Editar', accion: (grupo) => prepararEdicion(grupo) }
+      ]
 
-  // Función para ver detalles del grupo
   const verGrupo = (grupo) => {
     fetch(`${backendUrl}/api/grupos/vinculado/${grupo.id}`)
       .then((response) => response.json())
@@ -242,10 +226,8 @@ const Grupos = () => {
       })
   }
 
-  // Función para preparar la edición
   const prepararEdicion = (grupo) => {
     setGrupoSeleccionado(grupo)
-
     setMateriaId(grupo.grupoId?.toString() || '')
     setCohorteId(grupo.cohorteGrupoId?.toString() || '')
     setDocenteId(grupo.docenteId?.toString() || '')
@@ -254,7 +236,6 @@ const Grupos = () => {
     setIsOpen(true)
   }
 
-  // Función para validar campos del formulario
   const validarCampos = () => {
     if (!materiaId || !cohorteId || !docenteId) {
       setAlertType('error')
@@ -265,26 +246,20 @@ const Grupos = () => {
     return true
   }
 
-  // Función para crear un grupo
   const crearGrupo = async () => {
     try {
       const response = await fetch(`${backendUrl}/api/grupos/crear`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ materiaId: parseInt(materiaId) })
       })
-
       const data = await response.json()
-
       if (!response.ok) {
         setAlertType('error')
         setAlertMessage(data.message || 'Error al crear el grupo')
         setIsAlertOpen(true)
         return null
       }
-
       return data.id
     } catch (error) {
       setAlertType('error')
@@ -294,32 +269,24 @@ const Grupos = () => {
     }
   }
 
-  // Función para vincular un grupo
   const vincularGrupo = async (nuevoGrupoId) => {
     try {
       const response = await fetch(`${backendUrl}/api/grupos/vincular`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           grupoId: nuevoGrupoId,
           cohorteGrupoId: parseInt(cohorteId),
           docenteId: parseInt(docenteId)
         })
       })
-
       const data = await response.json()
-
       if (!response.ok) {
         setAlertType('error')
-        setAlertMessage(
-          data.message || 'El grupo fue creado pero hubo un error al vincularlo'
-        )
+        setAlertMessage(data.message || 'El grupo fue creado pero hubo un error al vincularlo')
         setIsAlertOpen(true)
         return null
       }
-
       return data
     } catch (error) {
       setAlertType('error')
@@ -329,21 +296,16 @@ const Grupos = () => {
     }
   }
 
-  // Función para obtener información de la materia
   const obtenerInformacionMateria = async (materiaId) => {
     try {
       const response = await fetch(`${backendUrl}/api/materias/${materiaId}`)
       const data = await response.json()
-
       if (!response.ok) {
         setAlertType('error')
-        setAlertMessage(
-          data.message || 'Error al obtener la información de la materia'
-        )
+        setAlertMessage(data.message || 'Error al obtener la información de la materia')
         setIsAlertOpen(true)
         return null
       }
-
       return data
     } catch (error) {
       setAlertType('error')
@@ -353,7 +315,6 @@ const Grupos = () => {
     }
   }
 
-  // Función para crear curso en Moodle
   const crearCursoMoodle = async (nombreGrupo, codigoGrupo, categoriaId) => {
     try {
       const url =
@@ -364,18 +325,14 @@ const Grupos = () => {
         `&courses[0][categoryid]=${categoriaId}` +
         `&courses[0][idnumber]=${encodeURIComponent(codigoGrupo)}` +
         `&moodlewsrestformat=json`
-
       const response = await fetch(url)
       const data = await response.json()
-
       if (!data || !Array.isArray(data) || data.length === 0 || !data[0].id) {
-        console.error('Respuesta inesperada de Moodle:', data)
         setAlertType('error')
         setAlertMessage('Error: Formato de respuesta de Moodle no válido')
         setIsAlertOpen(true)
         return null
       }
-
       return data[0].id
     } catch (error) {
       setAlertType('error')
@@ -385,24 +342,19 @@ const Grupos = () => {
     }
   }
 
-  // Función para asignar ID de Moodle al grupo
   const asignarMoodleIdGrupo = async (grupoId, moodleId) => {
     try {
       const response = await fetch(
         `${backendUrl}/api/grupos/moodle/${grupoId}?moodleId=${moodleId}`,
         { method: 'POST' }
       )
-
       if (!response.ok) {
         const data = await response.json()
         setAlertType('error')
-        setAlertMessage(
-          data.message || 'Error al asignar el ID de Moodle al grupo'
-        )
+        setAlertMessage(data.message || 'Error al asignar el ID de Moodle al grupo')
         setIsAlertOpen(true)
         return false
       }
-
       return true
     } catch (error) {
       setAlertType('error')
@@ -412,21 +364,16 @@ const Grupos = () => {
     }
   }
 
-  // Función para obtener información del profesor
   const obtenerInformacionProfesor = async (profesorId) => {
     try {
       const response = await fetch(`${backendUrl}/api/usuarios/${profesorId}`)
       const data = await response.json()
-
       if (!response.ok) {
         setAlertType('error')
-        setAlertMessage(
-          data.message || 'Error al obtener la información del profesor'
-        )
+        setAlertMessage(data.message || 'Error al obtener la información del profesor')
         setIsAlertOpen(true)
         return null
       }
-
       return data
     } catch (error) {
       setAlertType('error')
@@ -436,12 +383,9 @@ const Grupos = () => {
     }
   }
 
-  // Función para hacer enroll del profesor en el curso de Moodle
   const enrollProfesorEnCurso = async (profesorMoodleId, cursoMoodleId) => {
     try {
-      // El rol 3 suele ser el de profesor/teacher en Moodle, pero podría ser diferente en tu instalación
       const rolId = 3
-
       const url =
         `${moodleUrl}?wstoken=${moodleToken}` +
         `&wsfunction=enrol_manual_enrol_users` +
@@ -449,25 +393,16 @@ const Grupos = () => {
         `&enrolments[0][userid]=${profesorMoodleId}` +
         `&enrolments[0][courseid]=${cursoMoodleId}` +
         `&moodlewsrestformat=json`
-
       const response = await fetch(url)
       const data = await response.json()
-
-      // La función enrol_manual_enrol_users no devuelve nada en caso de éxito
-      // En caso de error, devuelve un objeto con la propiedad 'exception'
       if (data && data.exception) {
-        console.error('Error al hacer enroll del profesor:', data)
         setAlertType('error')
-        setAlertMessage(
-          `Error al inscribir al profesor en el curso: ${data.message}`
-        )
+        setAlertMessage(`Error al inscribir al profesor en el curso: ${data.message}`)
         setIsAlertOpen(true)
         return false
       }
-
       return true
     } catch (error) {
-      console.error('Error en la función enrollProfesorEnCurso:', error)
       setAlertType('error')
       setAlertMessage('Error al inscribir al profesor en el curso')
       setIsAlertOpen(true)
@@ -475,21 +410,16 @@ const Grupos = () => {
     }
   }
 
-  // Función para obtener la información del grupo vinculado
   const obtenerGrupoVinculado = async (idGrupo) => {
     try {
       const response = await fetch(`${backendUrl}/api/grupos/vinculado/${idGrupo}`)
       const data = await response.json()
-
       if (!response.ok) {
         setAlertType('error')
-        setAlertMessage(
-          data.message || 'Error al obtener información del grupo'
-        )
+        setAlertMessage(data.message || 'Error al obtener información del grupo')
         setIsAlertOpen(true)
         return null
       }
-
       return data
     } catch (error) {
       setAlertType('error')
@@ -499,34 +429,24 @@ const Grupos = () => {
     }
   }
 
-  // Función para hacer unenroll de un usuario en Moodle
   const unenrollUsuarioDelCurso = async (usuarioMoodleId, cursoMoodleId) => {
     try {
-      // La API de Moodle para desenrolar usuarios
       const url =
         `${moodleUrl}?wstoken=${moodleToken}` +
         `&wsfunction=enrol_manual_unenrol_users` +
         `&enrolments[0][userid]=${usuarioMoodleId}` +
         `&enrolments[0][courseid]=${cursoMoodleId}` +
         `&moodlewsrestformat=json`
-
       const response = await fetch(url)
       const data = await response.json()
-
-      // Similar a enrol_manual_enrol_users, esta función no devuelve nada en caso de éxito
       if (data && data.exception) {
-        console.error('Error al hacer unenroll del usuario:', data)
         setAlertType('error')
-        setAlertMessage(
-          `Error al retirar al profesor del curso: ${data.message}`
-        )
+        setAlertMessage(`Error al retirar al profesor del curso: ${data.message}`)
         setIsAlertOpen(true)
         return false
       }
-
       return true
     } catch (error) {
-      console.error('Error en la función unenrollUsuarioDelCurso:', error)
       setAlertType('error')
       setAlertMessage('Error al retirar al profesor del curso')
       setIsAlertOpen(true)
@@ -534,240 +454,122 @@ const Grupos = () => {
     }
   }
 
-  // Función para actualizar profesor en Moodle al actualizar grupo
-  const actualizarProfesorEnMoodle = async (
-    grupoId,
-    nuevoDocenteId,
-    docenteIdAnterior
-  ) => {
+  const actualizarProfesorEnMoodle = async (grupoId, nuevoDocenteId, docenteIdAnterior) => {
     try {
-      // Si el profesor no ha cambiado, no hacemos nada
-      if (nuevoDocenteId === docenteIdAnterior) {
-        return true
-      }
-
-      // Obtener información del grupo para conseguir el moodleId del curso
+      if (nuevoDocenteId === docenteIdAnterior) return true
       const grupoInfo = await obtenerGrupoVinculado(grupoId)
-      if (!grupoInfo || !grupoInfo.moodleId) {
-        console.warn('El grupo no tiene un ID de Moodle asociado')
-        return false
-      }
-
-      // Obtener información del profesor anterior
-      const profesorAnteriorInfo =
-        await obtenerInformacionProfesor(docenteIdAnterior)
+      if (!grupoInfo || !grupoInfo.moodleId) return false
+      const profesorAnteriorInfo = await obtenerInformacionProfesor(docenteIdAnterior)
       if (profesorAnteriorInfo && profesorAnteriorInfo.moodleId) {
-        // Desenrolar al profesor anterior
-        const unenrollExitoso = await unenrollUsuarioDelCurso(
-          profesorAnteriorInfo.moodleId,
-          grupoInfo.moodleId
-        )
-        if (!unenrollExitoso) {
-          console.warn('No se pudo retirar al profesor anterior del curso')
-        }
+        await unenrollUsuarioDelCurso(profesorAnteriorInfo.moodleId, grupoInfo.moodleId)
       }
-
-      // Obtener información del nuevo profesor
       const nuevoProfesorInfo = await obtenerInformacionProfesor(nuevoDocenteId)
       if (nuevoProfesorInfo && nuevoProfesorInfo.moodleId) {
-        // Enrolar al nuevo profesor
-        const enrollExitoso = await enrollProfesorEnCurso(
-          nuevoProfesorInfo.moodleId,
-          grupoInfo.moodleId
-        )
-        if (!enrollExitoso) {
-          console.warn('No se pudo inscribir al nuevo profesor en el curso')
-          return false
-        }
-      } else {
-        console.warn('El nuevo profesor no tiene ID de Moodle asignado')
-        return false
+        const enrollExitoso = await enrollProfesorEnCurso(nuevoProfesorInfo.moodleId, grupoInfo.moodleId)
+        if (!enrollExitoso) return false
       }
-
       return true
     } catch (error) {
-      console.error('Error al actualizar profesor en Moodle:', error)
       return false
     }
   }
 
-  // Función principal para crear y vincular grupo
   const crearYVincularGrupo = async (e) => {
     e.preventDefault()
-
-    // Paso 0: Validar campos
-    if (!validarCampos()) {
-      return
-    }
-
+    if (!validarCampos()) return
     try {
-      // Paso 1: Crear el grupo
       const nuevoGrupoId = await crearGrupo()
       if (nuevoGrupoId === null) return
-
-      // Paso 2: Vincular el grupo
       const grupoVinculado = await vincularGrupo(nuevoGrupoId)
       if (grupoVinculado === null) return
-
-      // Paso 3: Obtener información de la materia
-      const materiaInfo = await obtenerInformacionMateria(
-        grupoVinculado.materiaId
-      )
+      const materiaInfo = await obtenerInformacionMateria(grupoVinculado.materiaId)
       if (materiaInfo === null) return
-
-      // Paso 4: Obtener información del profesor
-      const profesorInfo = await obtenerInformacionProfesor(
-        grupoVinculado.docenteId
-      )
+      const profesorInfo = await obtenerInformacionProfesor(grupoVinculado.docenteId)
       if (profesorInfo === null) return
-
-      // Paso 5: Crear curso en Moodle
       const moodleCourseId = await crearCursoMoodle(
         grupoVinculado.grupoNombre + ' - ' + programas[0].semestreActual,
         grupoVinculado.codigoGrupo + '-' + programas[0].semestreActual,
         materiaInfo.moodleId
       )
       if (moodleCourseId === null) return
-
-      // Paso 6: Asignar ID de Moodle al grupo
-      const asignacionExitosa = await asignarMoodleIdGrupo(
-        grupoVinculado.id,
-        moodleCourseId
-      )
+      const asignacionExitosa = await asignarMoodleIdGrupo(grupoVinculado.id, moodleCourseId)
       if (!asignacionExitosa) return
-
-      // Paso 7: Hacer enroll del profesor en el curso de Moodle
       if (profesorInfo.moodleId) {
-        const enrollExitoso = await enrollProfesorEnCurso(
-          profesorInfo.moodleId,
-          moodleCourseId
-        )
-        if (!enrollExitoso) {
-          console.warn(
-            'No se pudo inscribir al profesor, pero el curso fue creado'
-          )
-        }
-      } else {
-        console.warn(
-          'El profesor no tiene ID de Moodle asignado, no se puede hacer enroll'
-        )
+        await enrollProfesorEnCurso(profesorInfo.moodleId, moodleCourseId)
       }
-
-      // Todo se ha completado correctamente
       limpiarFormulario()
       setIsOpen(false)
       setAlertType('success')
-      setAlertMessage(
-        'Grupo creado, vinculado y curso en Moodle creado correctamente'
-      )
+      setAlertMessage('Grupo creado, vinculado y curso en Moodle creado correctamente')
       setIsAlertOpen(true)
       cargarDatos()
     } catch (error) {
-      console.error('Error en el proceso:', error)
       setAlertType('error')
       setAlertMessage('Error al procesar la solicitud')
       setIsAlertOpen(true)
     }
   }
 
-  // Función para actualizar un grupo vinculado
   const actualizarGrupoVinculado = async (e) => {
     e.preventDefault()
-
     if (!materiaId || !cohorteId || !docenteId || !grupoId) {
       setAlertType('error')
       setAlertMessage('Por favor complete todos los campos')
       setIsAlertOpen(true)
       return
     }
-
     try {
-      // Guardamos el ID del docente anterior antes de actualizar
       const grupoAnterior = await obtenerGrupoVinculado(grupoId)
       if (!grupoAnterior) return
-
       const docenteIdAnterior = grupoAnterior.docenteId
-
-      // Actualizar el grupo en el backend
-      const actualizarResponse = await fetch(
-        `${backendUrl}/api/grupos/vincular/${grupoId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            grupoId: parseInt(materiaId),
-            cohorteGrupoId: parseInt(cohorteId),
-            docenteId: parseInt(docenteId)
-          })
-        }
-      )
-
+      const actualizarResponse = await fetch(`${backendUrl}/api/grupos/vincular/${grupoId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grupoId: parseInt(materiaId),
+          cohorteGrupoId: parseInt(cohorteId),
+          docenteId: parseInt(docenteId)
+        })
+      })
       const actualizarData = await actualizarResponse.json()
-
       if (!actualizarResponse.ok) {
         setAlertType('error')
-        setAlertMessage(
-          actualizarData.message || 'Error al actualizar el grupo'
-        )
+        setAlertMessage(actualizarData.message || 'Error al actualizar el grupo')
         setIsAlertOpen(true)
         return
       }
-
-      // Si el docente ha cambiado, actualizamos en Moodle
       if (parseInt(docenteId) !== docenteIdAnterior) {
-        const actualizacionMoodleExitosa = await actualizarProfesorEnMoodle(
-          grupoId,
-          parseInt(docenteId),
-          docenteIdAnterior
-        )
-
-        if (!actualizacionMoodleExitosa) {
-          console.warn(
-            'No se pudo actualizar correctamente el profesor en Moodle'
-          )
-        }
+        await actualizarProfesorEnMoodle(grupoId, parseInt(docenteId), docenteIdAnterior)
       }
-
-      // Limpiar el formulario y cerrar el modal
       limpiarFormulario()
       setIsOpen(false)
-
-      // Mostrar mensaje de éxito
       setAlertType('success')
       setAlertMessage('Grupo actualizado correctamente')
       setIsAlertOpen(true)
-
-      // Recargar datos
       cargarDatos()
     } catch (error) {
-      console.error('Error al actualizar grupo:', error)
       setAlertType('error')
       setAlertMessage('Error al procesar la solicitud')
       setIsAlertOpen(true)
     }
   }
 
-  // Función para limpiar el formulario
   const limpiarFormulario = () => {
     setMateriaId('')
     setCohorteId('')
     setDocenteId('')
     setGrupoId(null)
-    setProgramaId('') // Limpiar programa
-    setPensumId('') // Limpiar pensum
+    setProgramaId('')
+    setPensumId('')
     setModoEdicion(false)
     setGrupoSeleccionado(null)
   }
 
-  // Función para formatear el nombre completo del profesor
   const getNombreCompleto = (profesor) => {
     const primerNombre = profesor.primerNombre || ''
     const segundoNombre = profesor.segundoNombre || ''
     const primerApellido = profesor.primerApellido || ''
     const segundoApellido = profesor.segundoApellido || ''
-
     return `${primerNombre} ${segundoNombre} ${primerApellido} ${segundoApellido}`.trim()
   }
 
@@ -775,14 +577,11 @@ const Grupos = () => {
     <div className='p-4 w-full flex flex-col justify-center items-center'>
       <div className='w-full flex items-center justify-between mb-8'>
         <p className='text-center text-titulos flex-1'>Grupos</p>
-        <Boton
-          onClick={() => {
-            limpiarFormulario()
-            setIsOpen(true)
-          }}
-        >
-          Crear grupo
-        </Boton>
+        {!isGoogleUser && (
+          <Boton onClick={() => { limpiarFormulario(); setIsOpen(true) }}>
+            Crear grupo
+          </Boton>
+        )}
       </div>
       <Tabla
         informacion={informacion}
@@ -793,25 +592,16 @@ const Grupos = () => {
         cargandoContenido={cargandoGrupos}
       />
 
-      {/* Modal para crear/editar grupo */}
       <Modal
         size='xl'
         isOpen={isOpen}
-        onOpenChange={(open) => {
-          setIsOpen(open)
-          if (!open) {
-            limpiarFormulario()
-          }
-        }}
+        onOpenChange={(open) => { setIsOpen(open); if (!open) limpiarFormulario() }}
         cabecera={modoEdicion ? 'Editar Grupo' : 'Crear Grupo'}
         cuerpo={
           <Form
             className='flex flex-col gap-4'
-            onSubmit={
-              modoEdicion ? actualizarGrupoVinculado : crearYVincularGrupo
-            }
+            onSubmit={modoEdicion ? actualizarGrupoVinculado : crearYVincularGrupo}
           >
-            {/* Mostrar autocompletes de programa y pensum solo en modo creación */}
             {!modoEdicion && (
               <>
                 <div className='w-full py-4'>
@@ -825,15 +615,11 @@ const Grupos = () => {
                     placeholder='Selecciona el programa'
                     labelPlacement='outside'
                     isRequired
-                    onSelectionChange={(id) => {
-                      setProgramaId(id || '')
-                    }}
+                    onSelectionChange={(id) => setProgramaId(id || '')}
                     isInvalid={programaIdErrors.length > 0}
                     errorMessage={() => (
                       <ul className='text-xs text-danger mt-1'>
-                        {programaIdErrors.map((error, i) => (
-                          <li key={i}>{error}</li>
-                        ))}
+                        {programaIdErrors.map((error, i) => <li key={i}>{error}</li>)}
                       </ul>
                     )}
                   >
@@ -857,15 +643,11 @@ const Grupos = () => {
                       placeholder='Selecciona el pensum'
                       labelPlacement='outside'
                       isRequired
-                      onSelectionChange={(id) => {
-                        setPensumId(id || '')
-                      }}
+                      onSelectionChange={(id) => setPensumId(id || '')}
                       isInvalid={pensumIdErrors.length > 0}
                       errorMessage={() => (
                         <ul className='text-xs text-danger mt-1'>
-                          {pensumIdErrors.map((error, i) => (
-                            <li key={i}>{error}</li>
-                          ))}
+                          {pensumIdErrors.map((error, i) => <li key={i}>{error}</li>)}
                         </ul>
                       )}
                     >
@@ -877,6 +659,7 @@ const Grupos = () => {
                     </Autocomplete>
                   </div>
                 )}
+
                 {pensumId && (
                   <div className='w-full py-4'>
                     <Autocomplete
@@ -890,17 +673,11 @@ const Grupos = () => {
                       labelPlacement='outside'
                       isRequired
                       isDisabled={modoEdicion}
-                      onSelectionChange={(id) => {
-                        if (!modoEdicion) {
-                          setMateriaId(id || '')
-                        }
-                      }}
+                      onSelectionChange={(id) => { if (!modoEdicion) setMateriaId(id || '') }}
                       isInvalid={materiaIdErrors.length > 0}
                       errorMessage={() => (
                         <ul className='text-xs text-danger mt-1'>
-                          {materiaIdErrors.map((error, i) => (
-                            <li key={i}>{error}</li>
-                          ))}
+                          {materiaIdErrors.map((error, i) => <li key={i}>{error}</li>)}
                         </ul>
                       )}
                     >
@@ -927,15 +704,11 @@ const Grupos = () => {
                 labelPlacement='outside'
                 isRequired
                 isDisabled={modoEdicion}
-                onSelectionChange={(id) => {
-                  setCohorteId(id || '')
-                }}
+                onSelectionChange={(id) => setCohorteId(id || '')}
                 isInvalid={cohorteIdErrors.length > 0}
                 errorMessage={() => (
                   <ul className='text-xs text-danger mt-1'>
-                    {cohorteIdErrors.map((error, i) => (
-                      <li key={i}>{error}</li>
-                    ))}
+                    {cohorteIdErrors.map((error, i) => <li key={i}>{error}</li>)}
                   </ul>
                 )}
               >
@@ -958,15 +731,11 @@ const Grupos = () => {
                 placeholder='Selecciona el profesor'
                 labelPlacement='outside'
                 isRequired
-                onSelectionChange={(id) => {
-                  setDocenteId(id || '')
-                }}
+                onSelectionChange={(id) => setDocenteId(id || '')}
                 isInvalid={docenteIdErrors.length > 0}
                 errorMessage={() => (
                   <ul className='text-xs text-danger mt-1'>
-                    {docenteIdErrors.map((error, i) => (
-                      <li key={i}>{error}</li>
-                    ))}
+                    {docenteIdErrors.map((error, i) => <li key={i}>{error}</li>)}
                   </ul>
                 )}
               >
@@ -987,16 +756,10 @@ const Grupos = () => {
         }
       />
 
-      {/* Modal para ver detalles del grupo */}
       <Modal
         size='5xl'
         isOpen={isOpenView}
-        onOpenChange={(open) => {
-          setIsOpenView(open)
-          if (!open) {
-            setGrupoSeleccionado(null)
-          }
-        }}
+        onOpenChange={(open) => { setIsOpenView(open); if (!open) setGrupoSeleccionado(null) }}
         cabecera='Detalles del Grupo'
         cuerpo={
           grupoSeleccionado && (
@@ -1006,8 +769,7 @@ const Grupos = () => {
                   classNames={{
                     label: `w-1/4 h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
                     base: 'flex items-start',
-                    inputWrapper:
-                      'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
+                    inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
                     mainWrapper: 'w-[70%]'
                   }}
                   label='Código'
@@ -1021,8 +783,7 @@ const Grupos = () => {
                   classNames={{
                     label: `w-1/4 h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
                     base: 'flex items-start',
-                    inputWrapper:
-                      'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
+                    inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
                     mainWrapper: 'w-[70%]'
                   }}
                   label='Nombre'
@@ -1033,14 +794,12 @@ const Grupos = () => {
                   value={grupoSeleccionado.Nombre || ''}
                 />
               </div>
-
               <div className='w-full flex flex-row mb-4'>
                 <Input
                   classNames={{
                     label: `w-1/4 h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
                     base: 'flex items-start',
-                    inputWrapper:
-                      'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
+                    inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
                     mainWrapper: 'w-[70%]'
                   }}
                   label='Cohorte'
@@ -1054,8 +813,7 @@ const Grupos = () => {
                   classNames={{
                     label: `w-1/4 h-[40px] flex items-center group-data-[has-helper=true]:pt-0`,
                     base: 'flex items-start',
-                    inputWrapper:
-                      'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
+                    inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]',
                     mainWrapper: 'w-[70%]'
                   }}
                   label='Profesor'
@@ -1071,7 +829,6 @@ const Grupos = () => {
         }
       />
 
-      {/* AlertaModal para notificaciones */}
       <AlertaModal
         isOpen={isAlertOpen}
         onClose={() => setIsAlertOpen(false)}
