@@ -21,7 +21,6 @@ const Sidebar = () => {
   const backendUrl = getBackendUrl()
   const [programas, setProgramas] = useState([])
   const [userRole, setUserRole] = useState(null)
-  const [googleRole, setGoogleRole] = useState(null) // Rol dentro del token de Google (ej: 'Director')
 
   const detectarRol = () => {
     const userInfo = localStorage.getItem('userInfo')
@@ -45,40 +44,39 @@ const Sidebar = () => {
         return null
       }
     } else if (googleToken) {
-      // Decodificar el JWT para obtener el rol interno (Director, Estudiante, etc.)
-      try {
-        const payload = JSON.parse(atob(googleToken.split('.')[1]))
-        console.log('Payload del token Google:', payload)
-        setGoogleRole(payload.role || payload.rol || null)
-      } catch (e) {
-        console.error('Error al decodificar googleToken:', e)
-      }
       return 'ROLE_GOOGLE'
     }
     return null
   }
 
+  const getRolGoogle = () => {
+    try {
+      const token = localStorage.getItem('googleToken')
+      if (!token) return null
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return (payload.role || payload.rol || '').toLowerCase()
+    } catch {
+      return null
+    }
+  }
+
   useEffect(() => {
     const rol = detectarRol()
-    console.log('Rol detectado al montar:', rol)
     setUserRole(rol)
 
     const handleStorageChange = () => {
       const nuevoRol = detectarRol()
-      console.log('Cambio en localStorage detectado, nuevo rol:', nuevoRol)
       setUserRole(nuevoRol)
     }
 
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('googleTokenGuardado', handleStorageChange)
 
-    // Polling de respaldo: verifica cada 300ms durante 3 segundos
     let intentos = 0
     const interval = setInterval(() => {
       intentos++
       const rol = detectarRol()
       if (rol) {
-        console.log('Rol detectado por polling:', rol)
         setUserRole(rol)
         clearInterval(interval)
       }
@@ -131,30 +129,25 @@ const Sidebar = () => {
   }, [selectedOption])
 
   const shouldShowMenu = (menuName) => {
-    console.log('userRole:', userRole, '| googleRole:', googleRole, '| menuName:', menuName)
-
-    // Director de programa (login Google con rol Director)
-    if (userRole === 'ROLE_GOOGLE' && googleRole === 'Director') {
-      return (
-        menuName === 'Académico' ||
-        menuName === 'Matrícula' 
-       
-      )
-    }
-
-    // Cualquier otro usuario de Google que no sea Director
     if (userRole === 'ROLE_GOOGLE') {
-      return menuName === 'Proyectos'
+      return menuName === 'Académico' || menuName === 'Matrícula'
     }
-
     if (!userRole) return false
-
     if (userRole === 'ROLE_SUPERADMIN') return true
-
     if (userRole === 'ROLE_ADMIN') return menuName !== 'Admin'
-
     return menuName === 'Proyectos'
   }
+
+  const opcionesAcademico = [
+    { label: 'Programas', href: '/academico/programas' },
+    { label: 'Pénsums', href: '/academico/pensums' },
+    { label: 'Cohortes', href: '/academico/cohortes' },
+    { label: 'Materias', href: '/academico/materias' },
+    { label: 'Grupos', href: '/academico/grupos' },
+    ...(userRole === 'ROLE_GOOGLE' && getRolGoogle() === 'estudiante'
+      ? [{ label: 'Mis Notas', href: '/academico/mis-notas' }]
+      : [])
+  ]
 
   return (
     <div
@@ -174,13 +167,7 @@ const Sidebar = () => {
               nombre='Académico'
               funcion={() => toggleMenu(1)}
               icono={<LibraryBig className='text-[25px]' />}
-              opciones={[
-                { label: 'Programas', href: '/academico/programas' },
-                { label: 'Pénsums', href: '/academico/pensums' },
-                { label: 'Cohortes', href: '/academico/cohortes' },
-                { label: 'Materias', href: '/academico/materias' },
-                { label: 'Grupos', href: '/academico/grupos' }
-              ]}
+              opciones={opcionesAcademico}
               openMenu={selectedMenu === 1}
               selectedOption={selectedOption}
               handleOptionClick={handleOptionClick}
@@ -194,15 +181,9 @@ const Sidebar = () => {
               icono={<BookPlus className='text-[25px]' />}
               opciones={[
                 { label: 'Cancelación', href: '/matricula/cancelaciones' },
-                {
-                  label: 'Aplazamiento de semestre',
-                  href: '/matricula/aplazamiento'
-                },
+                { label: 'Aplazamiento de semestre', href: '/matricula/aplazamiento' },
                 { label: 'Reintegro', href: '/matricula/reintegros' },
-                {
-                  label: 'Contraprestaciones',
-                  href: '/matricula/contraprestaciones'
-                },
+                { label: 'Contraprestaciones', href: '/matricula/contraprestaciones' },
                 { label: 'Inclusión de materias', href: '/matricula/inclusion' }
               ]}
               openMenu={selectedMenu === 2}
