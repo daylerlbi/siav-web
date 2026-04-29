@@ -13,7 +13,17 @@ const Pensum = () => {
   const [informacion, setInformacion] = useState([])
   const [cargandoPensums, setCargandoPensums] = useState(true)
   const backendUrl = getBackendUrl()
-  const isGoogleUser = !!localStorage.getItem('googleToken')
+
+  const isEstudiante = (() => {
+    try {
+      const token = localStorage.getItem('googleToken')
+      if (!token) return false
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return (payload.role || '').toLowerCase() === 'estudiante'
+    } catch { return false }
+  })()
+  const isGoogleUser = isEstudiante
+
   const [isOpen, setIsOpen] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
   const [pensumId, setPensumId] = useState(null)
@@ -44,9 +54,7 @@ const Pensum = () => {
     }
   }
 
-  useEffect(() => {
-    cargarDatos()
-  }, [])
+  useEffect(() => { cargarDatos() }, [])
 
   const cargarDatos = async () => {
     setCargandoPensums(true)
@@ -259,90 +267,37 @@ const Pensum = () => {
         onOpenChange={(open) => { setIsOpen(open); if (!open) limpiarFormulario() }}
         cabecera={modoEdicion ? 'Editar Pensum' : 'Crear Pensum'}
         cuerpo={
-          <form
-            className='flex flex-col gap-4'
-            onSubmit={modoEdicion ? actualizarPensum : confirmarCreacionPensum}
-          >
+          <form className='flex flex-col gap-4' onSubmit={modoEdicion ? actualizarPensum : confirmarCreacionPensum}>
             <div className='flex flex-col gap-1 w-full py-4'>
               <label className='text-sm'>Nombre *</label>
               <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                <input
-                  className='w-full outline-none bg-transparent text-sm'
-                  placeholder='Ingresa el nombre del pensum'
-                  value={nombrePensum}
-                  onChange={(e) => setNombrePensum(e.target.value)}
-                  required
-                />
+                <input className='w-full outline-none bg-transparent text-sm' placeholder='Ingresa el nombre del pensum' value={nombrePensum} onChange={(e) => setNombrePensum(e.target.value)} required />
               </div>
-              {nombrePensumErrors.length > 0 && (
-                <ul className='text-xs text-danger mt-1'>
-                  {nombrePensumErrors.map((error, i) => <li key={i}>{error}</li>)}
-                </ul>
-              )}
+              {nombrePensumErrors.length > 0 && <ul className='text-xs text-danger mt-1'>{nombrePensumErrors.map((error, i) => <li key={i}>{error}</li>)}</ul>}
             </div>
 
             <div className='w-full py-4'>
-              <Autocomplete
-                variant='bordered'
-                className='w-full'
-                defaultItems={programas}
-                selectedKey={programaId}
-                isReadOnly={modoEdicion}
-                label='Programa académico'
-                size='md'
-                placeholder='Selecciona el programa académico'
-                labelPlacement='outside'
-                isRequired
-                onSelectionChange={(id) => setProgramaId(id || '')}
-                isInvalid={programaIdErrors.length > 0}
-                errorMessage={() => (
-                  <ul className='text-xs text-danger mt-1'>
-                    {programaIdErrors.map((error, i) => <li key={i}>{error}</li>)}
-                  </ul>
-                )}
-              >
-                {(programa) => (
-                  <AutocompleteItem key={programa.id.toString()}>
-                    {programa.nombre}
-                  </AutocompleteItem>
-                )}
+              <Autocomplete variant='bordered' className='w-full' defaultItems={programas} selectedKey={programaId} isReadOnly={modoEdicion} label='Programa académico' size='md' placeholder='Selecciona el programa académico' labelPlacement='outside' isRequired onSelectionChange={(id) => setProgramaId(id || '')} isInvalid={programaIdErrors.length > 0} errorMessage={() => <ul className='text-xs text-danger mt-1'>{programaIdErrors.map((error, i) => <li key={i}>{error}</li>)}</ul>}>
+                {(programa) => <AutocompleteItem key={programa.id.toString()}>{programa.nombre}</AutocompleteItem>}
               </Autocomplete>
             </div>
 
             <div className='flex flex-col gap-1 w-full py-4'>
               <label className='text-sm'>Cantidad de semestres *</label>
               <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                <input
-                  className='w-full outline-none bg-transparent text-sm'
-                  placeholder='Ingresa la cantidad de semestres (1-10)'
-                  type='number'
-                  min={1}
-                  max={10}
-                  readOnly={modoEdicion}
-                  value={cantidadSemestres}
+                <input className='w-full outline-none bg-transparent text-sm' placeholder='Ingresa la cantidad de semestres (1-10)' type='number' min={1} max={10} readOnly={modoEdicion} value={cantidadSemestres}
                   onChange={(e) => {
                     const numValue = parseInt(e.target.value)
-                    if (e.target.value === '') {
-                      setCantidadSemestres('')
-                    } else if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) {
-                      setCantidadSemestres(numValue.toString())
-                    }
-                  }}
-                  required
-                />
+                    if (e.target.value === '') { setCantidadSemestres('') }
+                    else if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) { setCantidadSemestres(numValue.toString()) }
+                  }} required />
               </div>
-              {cantidadSemestresErrors.length > 0 && (
-                <ul className='text-xs text-danger mt-1'>
-                  {cantidadSemestresErrors.map((error, i) => <li key={i}>{error}</li>)}
-                </ul>
-              )}
+              {cantidadSemestresErrors.length > 0 && <ul className='text-xs text-danger mt-1'>{cantidadSemestresErrors.map((error, i) => <li key={i}>{error}</li>)}</ul>}
               <p className='text-xs text-gray-500 mt-1'>El número debe estar entre 1 y 10</p>
             </div>
 
             <div className='w-full flex justify-end mb-[-20px]'>
-              <Boton type='submit'>
-                {modoEdicion ? 'Guardar cambios' : 'Crear pensum'}
-              </Boton>
+              <Boton type='submit'>{modoEdicion ? 'Guardar cambios' : 'Crear pensum'}</Boton>
             </div>
           </form>
         }
@@ -364,13 +319,7 @@ const Pensum = () => {
         }
       />
 
-      <AlertaModal
-        isOpen={isAlertOpen}
-        onClose={() => setIsAlertOpen(false)}
-        message={alertMessage}
-        type={alertType}
-        titulo={alertTitulo}
-      />
+      <AlertaModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} message={alertMessage} type={alertType} titulo={alertTitulo} />
     </div>
   )
 }

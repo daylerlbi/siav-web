@@ -22,33 +22,6 @@ const Sidebar = () => {
   const [programas, setProgramas] = useState([])
   const [userRole, setUserRole] = useState(null)
 
-  const detectarRol = () => {
-    const userInfo = localStorage.getItem('userInfo')
-    const googleToken = localStorage.getItem('googleToken')
-
-    if (userInfo) {
-      try {
-        const { rol } = JSON.parse(userInfo)
-        if (rol.includes('SUPERADMIN') || rol.includes('SUPER_ADMIN')) {
-          return 'ROLE_SUPERADMIN'
-        } else if (
-          (rol.includes('ADMIN') || rol === 'ROLE_ADMIN') &&
-          !rol.includes('SUPER')
-        ) {
-          return 'ROLE_ADMIN'
-        } else {
-          return rol
-        }
-      } catch (error) {
-        console.error('Error al parsear userInfo:', error)
-        return null
-      }
-    } else if (googleToken) {
-      return 'ROLE_GOOGLE'
-    }
-    return null
-  }
-
   const getRolGoogle = () => {
     try {
       const token = localStorage.getItem('googleToken')
@@ -60,14 +33,27 @@ const Sidebar = () => {
     }
   }
 
+  const detectarRol = () => {
+    const userInfo = localStorage.getItem('userInfo')
+    const googleToken = localStorage.getItem('googleToken')
+    if (userInfo) {
+      try {
+        const { rol } = JSON.parse(userInfo)
+        if (rol.includes('SUPERADMIN') || rol.includes('SUPER_ADMIN')) return 'ROLE_SUPERADMIN'
+        else if ((rol.includes('ADMIN') || rol === 'ROLE_ADMIN') && !rol.includes('SUPER')) return 'ROLE_ADMIN'
+        else return rol
+      } catch { return null }
+    } else if (googleToken) {
+      return 'ROLE_GOOGLE'
+    }
+    return null
+  }
+
   useEffect(() => {
     const rol = detectarRol()
     setUserRole(rol)
 
-    const handleStorageChange = () => {
-      const nuevoRol = detectarRol()
-      setUserRole(nuevoRol)
-    }
+    const handleStorageChange = () => setUserRole(detectarRol())
 
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('googleTokenGuardado', handleStorageChange)
@@ -76,10 +62,7 @@ const Sidebar = () => {
     const interval = setInterval(() => {
       intentos++
       const rol = detectarRol()
-      if (rol) {
-        setUserRole(rol)
-        clearInterval(interval)
-      }
+      if (rol) { setUserRole(rol); clearInterval(interval) }
       if (intentos >= 10) clearInterval(interval)
     }, 300)
 
@@ -96,41 +79,38 @@ const Sidebar = () => {
 
   const handleOptionClick = (label, codigo) => {
     setSelectedOption(label)
-    if (codigo) {
-      localStorage.setItem('codigoPrograma', codigo)
-    }
+    if (codigo) localStorage.setItem('codigoPrograma', codigo)
   }
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       fetch(`${backendUrl}/api/programas/listar`)
-        .then((response) => response.json())
+        .then((r) => r.json())
         .then((data) => {
-          const programasFiltrados = data.filter(
-            (programa) => programa.esPosgrado
+          setProgramas(
+            data
+              .filter((p) => p.esPosgrado)
+              .map((p) => ({ label: p.nombre, href: '/posgrado/grupos', codigo: String(p.id) }))
           )
-          const programasTransformados = programasFiltrados.map((programa) => ({
-            label: programa.nombre,
-            href: '/posgrado/grupos',
-            codigo: String(programa.id)
-          }))
-          setProgramas(programasTransformados)
         })
     }, 500)
-
     return () => clearTimeout(timeout)
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(
-      'sidebarState',
-      JSON.stringify({ selectedMenu, selectedOption })
-    )
+    localStorage.setItem('sidebarState', JSON.stringify({ selectedMenu, selectedOption }))
   }, [selectedOption])
 
+  // Lee el rol directo del token en cada render — no depende del estado
+  const rolGoogle = getRolGoogle()
+  const esGoogleUser = !!localStorage.getItem('googleToken') && !localStorage.getItem('userInfo')
+  const esEstudiante = esGoogleUser && rolGoogle === 'estudiante'
+  const esDirector = esGoogleUser && (rolGoogle === 'director' || rolGoogle === 'director de programa')
+
   const shouldShowMenu = (menuName) => {
-    if (userRole === 'ROLE_GOOGLE') {
-      return menuName === 'Académico' || menuName === 'Matrícula'
+    if (esGoogleUser) {
+      if (esDirector) return ['Académico', 'Matrícula', 'Usuarios'].includes(menuName)
+      return ['Académico', 'Matrícula'].includes(menuName)
     }
     if (!userRole) return false
     if (userRole === 'ROLE_SUPERADMIN') return true
@@ -144,15 +124,11 @@ const Sidebar = () => {
     { label: 'Cohortes', href: '/academico/cohortes' },
     { label: 'Materias', href: '/academico/materias' },
     { label: 'Grupos', href: '/academico/grupos' },
-    ...(userRole === 'ROLE_GOOGLE' && getRolGoogle() === 'estudiante'
-      ? [{ label: 'Mis Notas', href: '/academico/mis-notas' }]
-      : [])
+    ...(esEstudiante ? [{ label: 'Mis Notas', href: '/academico/mis-notas' }] : [])
   ]
 
   return (
-    <div
-      className={`bg-rojo-claro min-h-full transition-all duration-300 min-w-0 overflow-hidden ${isOpen ? 'w-[240px] px-4' : 'w-0'}`}
-    >
+    <div className={`bg-rojo-claro min-h-full transition-all duration-300 min-w-0 overflow-hidden ${isOpen ? 'w-[240px] px-4' : 'w-0'}`}>
       <button
         className={`absolute top-1 ${isOpen ? 'left-4' : 'left-2'} p-2 bg-rojo-mate text-white rounded-md`}
         onClick={() => setIsOpen(!isOpen)}
@@ -215,18 +191,9 @@ const Sidebar = () => {
               opciones={[
                 {
                   label: 'Pregrado',
-                  subopciones: [
-                    {
-                      label: 'Tecnología en analítica de datos',
-                      href: '/pregrado/grupos',
-                      codigo: '215'
-                    }
-                  ]
+                  subopciones: [{ label: 'Tecnología en analítica de datos', href: '/pregrado/grupos', codigo: '215' }]
                 },
-                {
-                  label: 'Posgrado',
-                  subopciones: programas
-                }
+                { label: 'Posgrado', subopciones: programas }
               ]}
               openMenu={selectedMenu === 4}
               selectedOption={selectedOption}

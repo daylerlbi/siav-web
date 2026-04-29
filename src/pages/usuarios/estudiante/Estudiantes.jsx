@@ -12,14 +12,19 @@ const Estudiantes = () => {
   const backendUrl = getBackendUrl()
   const Navigate = useNavigate()
 
-  // ← NUEVO: detectar si es usuario de Google y su programa
   const googleToken = localStorage.getItem('googleToken')
-  const isGoogleUser = !!googleToken
   const programaIdEstudiante = localStorage.getItem('programaIdEstudiante')
+  const isEstudiante = (() => {
+    try {
+      if (!googleToken) return false
+      const payload = JSON.parse(atob(googleToken.split('.')[1]))
+      return (payload.role || '').toLowerCase() === 'estudiante'
+    } catch { return false }
+  })()
+  const isGoogleUser = isEstudiante
 
   useEffect(() => {
     setCargandoEstudiantes(true)
-    // ← NUEVO: si es Google, filtrar por programa; si no, traer todos
     const url = isGoogleUser && programaIdEstudiante
       ? `${backendUrl}/api/estudiantes/listar/programa/${programaIdEstudiante}`
       : `${backendUrl}/api/estudiantes`
@@ -101,4 +106,5 @@ const Estudiantes = () => {
     </div>
   )
 }
+
 export default Estudiantes

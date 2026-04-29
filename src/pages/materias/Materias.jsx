@@ -32,8 +32,15 @@ const Materias = () => {
   const [maxSemestres, setMaxSemestres] = useState(0)
 
   const googleToken = localStorage.getItem('googleToken')
-  const isGoogleUser = !!googleToken
   const estudianteId = localStorage.getItem('estudianteId')
+  const isEstudiante = (() => {
+    try {
+      if (!googleToken) return false
+      const payload = JSON.parse(atob(googleToken.split('.')[1]))
+      return (payload.role || '').toLowerCase() === 'estudiante'
+    } catch { return false }
+  })()
+  const isGoogleUser = isEstudiante
 
   const codigoErrors = []
   if (codigo === '') codigoErrors.push('Este campo es obligatorio')
@@ -298,20 +305,11 @@ const Materias = () => {
         onOpenChange={(open) => { setIsOpenForm(open); if (!open) limpiarFormulario() }}
         cabecera={modoEdicion ? 'Editar Materia' : 'Crear Materia'}
         cuerpo={
-          <form
-            className='flex flex-col gap-4'
-            onSubmit={modoEdicion ? actualizarMateria : crearMateria}
-          >
+          <form className='flex flex-col gap-4' onSubmit={modoEdicion ? actualizarMateria : crearMateria}>
             <div className='flex flex-col gap-1 w-full py-4'>
               <label className='text-sm'>Código *</label>
               <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                <input
-                  className='w-full outline-none bg-transparent text-sm'
-                  placeholder='Ingresa el código de la materia'
-                  value={codigo}
-                  onChange={(e) => setCodigo(e.target.value)}
-                  required
-                />
+                <input className='w-full outline-none bg-transparent text-sm' placeholder='Ingresa el código de la materia' value={codigo} onChange={(e) => setCodigo(e.target.value)} required />
               </div>
               {codigoErrors.length > 0 && <ul className='text-xs text-danger mt-1'>{codigoErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
             </div>
@@ -319,33 +317,13 @@ const Materias = () => {
             <div className='flex flex-col gap-1 w-full py-4'>
               <label className='text-sm'>Nombre *</label>
               <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                <input
-                  className='w-full outline-none bg-transparent text-sm'
-                  placeholder='Ingresa el nombre de la materia'
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  required
-                />
+                <input className='w-full outline-none bg-transparent text-sm' placeholder='Ingresa el nombre de la materia' value={nombre} onChange={(e) => setNombre(e.target.value)} required />
               </div>
               {nombreErrors.length > 0 && <ul className='text-xs text-danger mt-1'>{nombreErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
             </div>
 
             <div className='w-full py-4'>
-              <Autocomplete
-                variant='bordered'
-                className='w-full'
-                defaultItems={pensums}
-                selectedKey={pensumId}
-                label='Pensum'
-                size='md'
-                placeholder='Selecciona el pensum'
-                labelPlacement='outside'
-                isRequired
-                isDisabled={modoEdicion}
-                onSelectionChange={(id) => handlePensumChange(id)}
-                isInvalid={pensumIdErrors.length > 0}
-                errorMessage={() => <ul className='text-xs text-danger mt-1'>{pensumIdErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
-              >
+              <Autocomplete variant='bordered' className='w-full' defaultItems={pensums} selectedKey={pensumId} label='Pensum' size='md' placeholder='Selecciona el pensum' labelPlacement='outside' isRequired isDisabled={modoEdicion} onSelectionChange={(id) => handlePensumChange(id)} isInvalid={pensumIdErrors.length > 0} errorMessage={() => <ul className='text-xs text-danger mt-1'>{pensumIdErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>}>
                 {(pensum) => <AutocompleteItem key={pensum.id.toString()}>{pensum.nombre}</AutocompleteItem>}
               </Autocomplete>
             </div>
@@ -354,13 +332,7 @@ const Materias = () => {
               <div className='w-1/2 flex flex-col gap-1 py-4'>
                 <label className='text-sm'>Créditos *</label>
                 <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                  <input
-                    className='w-full outline-none bg-transparent text-sm'
-                    placeholder='Ingresa los créditos'
-                    value={creditos}
-                    onChange={(e) => setCreditos(e.target.value)}
-                    required
-                  />
+                  <input className='w-full outline-none bg-transparent text-sm' placeholder='Ingresa los créditos' value={creditos} onChange={(e) => setCreditos(e.target.value)} required />
                 </div>
                 {creditosErrors.length > 0 && <ul className='text-xs text-danger mt-1'>{creditosErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
               </div>
@@ -368,23 +340,14 @@ const Materias = () => {
               <div className='w-1/2 flex flex-col gap-1 py-4'>
                 <label className='text-sm'>Semestre *</label>
                 <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                  <input
-                    className='w-full outline-none bg-transparent text-sm'
-                    placeholder={maxSemestres ? `Ingresa el semestre (1-${maxSemestres})` : 'Selecciona un pensum primero'}
-                    type='number'
-                    min={1}
-                    max={maxSemestres || undefined}
-                    disabled={maxSemestres === 0}
-                    value={semestre}
+                  <input className='w-full outline-none bg-transparent text-sm' placeholder={maxSemestres ? `Ingresa el semestre (1-${maxSemestres})` : 'Selecciona un pensum primero'} type='number' min={1} max={maxSemestres || undefined} disabled={maxSemestres === 0} value={semestre}
                     onChange={(e) => {
                       if (e.target.value === '') { setSemestre('') }
                       else {
                         const numValue = parseInt(e.target.value)
                         if (!isNaN(numValue) && numValue >= 1 && numValue <= maxSemestres) setSemestre(numValue.toString())
                       }
-                    }}
-                    required
-                  />
+                    }} required />
                 </div>
                 {semestreErrors.length > 0 && <ul className='text-xs text-danger mt-1'>{semestreErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
                 <p className='text-xs text-gray-500 mt-1'>{maxSemestres ? `Debe ser un número entre 1 y ${maxSemestres}` : 'Selecciona un pensum primero'}</p>
@@ -447,13 +410,7 @@ const Materias = () => {
         }
       />
 
-      <AlertaModal
-        isOpen={isAlertOpen}
-        onClose={() => setIsAlertOpen(false)}
-        message={alertMessage}
-        type={alertType}
-        titulo={alertType === 'success' ? 'Operación exitosa' : 'Error'}
-      />
+      <AlertaModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} message={alertMessage} type={alertType} titulo={alertType === 'success' ? 'Operación exitosa' : 'Error'} />
     </div>
   )
 }

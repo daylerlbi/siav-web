@@ -12,9 +12,15 @@ const Profesores = () => {
   const backendUrl = getBackendUrl()
   const Navigate = useNavigate()
 
-  // ← NUEVO: detectar si es usuario de Google
   const googleToken = localStorage.getItem('googleToken')
-  const isGoogleUser = !!googleToken
+  const isEstudiante = (() => {
+    try {
+      if (!googleToken) return false
+      const payload = JSON.parse(atob(googleToken.split('.')[1]))
+      return (payload.role || '').toLowerCase() === 'estudiante'
+    } catch { return false }
+  })()
+  const isGoogleUser = isEstudiante
 
   useEffect(() => {
     setCargandoProfesores(true)
@@ -102,4 +108,5 @@ const Profesores = () => {
     </div>
   )
 }
+
 export default Profesores

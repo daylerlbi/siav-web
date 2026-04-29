@@ -23,7 +23,14 @@ const Cohortes = () => {
   const backendUrl = getBackendUrl()
 
   const googleToken = localStorage.getItem('googleToken')
-  const isGoogleUser = !!googleToken
+  const isEstudiante = (() => {
+    try {
+      if (!googleToken) return false
+      const payload = JSON.parse(atob(googleToken.split('.')[1]))
+      return (payload.role || '').toLowerCase() === 'estudiante'
+    } catch { return false }
+  })()
+  const isGoogleUser = isEstudiante
 
   const showAlerta = (mensaje, tipo, titulo) => {
     setAlertaMessage(mensaje)
@@ -32,9 +39,7 @@ const Cohortes = () => {
     setAlertaModalOpen(true)
   }
 
-  useEffect(() => {
-    fetchCohortes()
-  }, [])
+  useEffect(() => { fetchCohortes() }, [])
 
   const fetchCohortes = () => {
     setCargandoCohortes(true)
@@ -49,24 +54,15 @@ const Cohortes = () => {
         }))
         setInformacion(datosTabla)
       })
-      .catch(() => {
-        showAlerta('Error al cargar la lista de cohortes', 'error', 'Error de conexión')
-      })
-      .finally(() => {
-        setCargandoCohortes(false)
-      })
+      .catch(() => { showAlerta('Error al cargar la lista de cohortes', 'error', 'Error de conexión') })
+      .finally(() => { setCargandoCohortes(false) })
   }
 
   const handleViewCohorte = (cohorte) => {
     fetch(`${backendUrl}/api/cohortes/${cohorte.id}`)
       .then((response) => response.json())
-      .then((data) => {
-        setCohorteDetails(data)
-        setIsViewModalOpen(true)
-      })
-      .catch(() => {
-        showAlerta('Error al obtener los detalles de la cohorte', 'error', 'Error de conexión')
-      })
+      .then((data) => { setCohorteDetails(data); setIsViewModalOpen(true) })
+      .catch(() => { showAlerta('Error al obtener los detalles de la cohorte', 'error', 'Error de conexión') })
   }
 
   const handleEditCohorte = (cohorte) => {
@@ -77,10 +73,7 @@ const Cohortes = () => {
 
   const handleEditSubmit = (e) => {
     if (e && e.preventDefault) e.preventDefault()
-    const cohorteDTO = {
-      nombre: editFormData.nombre,
-      fechaCreacion: selectedCohorte.fechaCreacion
-    }
+    const cohorteDTO = { nombre: editFormData.nombre, fechaCreacion: selectedCohorte.fechaCreacion }
     fetch(`${backendUrl}/api/cohortes/${selectedCohorte.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -90,11 +83,7 @@ const Cohortes = () => {
         if (response.ok) return response.json()
         return response.json().then((data) => { throw new Error(data.mensaje || 'Error al actualizar la cohorte') })
       })
-      .then((data) => {
-        setIsEditModalOpen(false)
-        fetchCohortes()
-        showAlerta(data.mensaje || 'Cohorte actualizada exitosamente', 'success', 'Cohorte actualizada')
-      })
+      .then((data) => { setIsEditModalOpen(false); fetchCohortes(); showAlerta(data.mensaje || 'Cohorte actualizada exitosamente', 'success', 'Cohorte actualizada') })
       .catch((error) => { showAlerta(error.message, 'error', 'Error al actualizar') })
   }
 
@@ -113,12 +102,7 @@ const Cohortes = () => {
         if (response.ok) return response.json()
         return response.json().then((data) => { throw new Error(data.mensaje || 'Error al crear la cohorte') })
       })
-      .then((data) => {
-        setIsCreateModalOpen(false)
-        setCreateFormData({ nombre: '' })
-        fetchCohortes()
-        showAlerta(data.mensaje || 'Cohorte creada exitosamente', 'success', 'Cohorte creada')
-      })
+      .then((data) => { setIsCreateModalOpen(false); setCreateFormData({ nombre: '' }); fetchCohortes(); showAlerta(data.mensaje || 'Cohorte creada exitosamente', 'success', 'Cohorte creada') })
       .catch((error) => { showAlerta(error.message, 'error', 'Error al crear') })
   }
 
@@ -128,7 +112,6 @@ const Cohortes = () => {
     { icono: <Eye size={18} />, tooltip: 'Ver detalles', accion: handleViewCohorte },
     { icono: <Pencil size={18} />, tooltip: 'Editar', accion: handleEditCohorte }
   ]
-
   const accionesSoloVer = [
     { icono: <Eye size={18} />, tooltip: 'Ver detalles', accion: handleViewCohorte }
   ]
@@ -138,26 +121,13 @@ const Cohortes = () => {
       <div className='w-full flex items-center justify-between mb-8'>
         <p className='text-center text-titulos flex-1'>Lista de Cohortes</p>
         {!isGoogleUser && (
-          <Boton onClick={() => setIsCreateModalOpen(true)} color='danger'>
-            Crear cohorte
-          </Boton>
+          <Boton onClick={() => setIsCreateModalOpen(true)} color='danger'>Crear cohorte</Boton>
         )}
       </div>
 
-      <Tabla
-        informacion={informacion}
-        columnas={columnas}
-        filtros={filtros}
-        acciones={isGoogleUser ? accionesSoloVer : acciones}
-        elementosPorPagina={10}
-        cargandoContenido={cargandoCohortes}
-      />
+      <Tabla informacion={informacion} columnas={columnas} filtros={filtros} acciones={isGoogleUser ? accionesSoloVer : acciones} elementosPorPagina={10} cargandoContenido={cargandoCohortes} />
 
-      <Modal
-        isOpen={isViewModalOpen}
-        onOpenChange={setIsViewModalOpen}
-        cabecera='Detalles de la Cohorte'
-        size='5xl'
+      <Modal isOpen={isViewModalOpen} onOpenChange={setIsViewModalOpen} cabecera='Detalles de la Cohorte' size='5xl'
         cuerpo={
           cohorteDetails && (
             <div className='w-full flex flex-col'>
@@ -165,25 +135,16 @@ const Cohortes = () => {
                 <div className='flex flex-col gap-1'>
                   <label className='text-sm'>Nombre</label>
                   <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                    <input
-                      className='w-full outline-none bg-transparent text-sm'
-                      readOnly
-                      value={cohorteDetails.nombre || ''}
-                    />
+                    <input className='w-full outline-none bg-transparent text-sm' readOnly value={cohorteDetails.nombre || ''} />
                   </div>
                 </div>
                 <div className='flex flex-col gap-1'>
                   <label className='text-sm'>Fecha de Creación</label>
                   <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                    <input
-                      className='w-full outline-none bg-transparent text-sm'
-                      readOnly
-                      value={new Date(cohorteDetails.fechaCreacion).toLocaleDateString()}
-                    />
+                    <input className='w-full outline-none bg-transparent text-sm' readOnly value={new Date(cohorteDetails.fechaCreacion).toLocaleDateString()} />
                   </div>
                 </div>
               </div>
-
               <div className='w-full mb-4'>
                 <p className='font-medium mb-2'>Grupos asociados</p>
                 {cohorteDetails.cohortesGrupos && cohorteDetails.cohortesGrupos.length > 0 ? (
@@ -191,28 +152,18 @@ const Cohortes = () => {
                     <div className='w-1/2 flex flex-col gap-1'>
                       <label className='text-sm'>Grupo A</label>
                       <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                        <input
-                          className='w-full outline-none bg-transparent text-sm'
-                          readOnly
-                          value={cohorteDetails.cohortesGrupos[0]?.nombre || 'No asignado'}
-                        />
+                        <input className='w-full outline-none bg-transparent text-sm' readOnly value={cohorteDetails.cohortesGrupos[0]?.nombre || 'No asignado'} />
                       </div>
                     </div>
                     <div className='w-1/2 flex flex-col gap-1'>
                       <label className='text-sm'>Grupo B</label>
                       <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                        <input
-                          className='w-full outline-none bg-transparent text-sm'
-                          readOnly
-                          value={cohorteDetails.cohortesGrupos[1]?.nombre || 'No asignado'}
-                        />
+                        <input className='w-full outline-none bg-transparent text-sm' readOnly value={cohorteDetails.cohortesGrupos[1]?.nombre || 'No asignado'} />
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className='text-center p-4 border border-gris-institucional rounded-[15px] text-gray-500'>
-                    No hay grupos asociados a esta cohorte
-                  </div>
+                  <div className='text-center p-4 border border-gris-institucional rounded-[15px] text-gray-500'>No hay grupos asociados a esta cohorte</div>
                 )}
               </div>
             </div>
@@ -220,67 +171,35 @@ const Cohortes = () => {
         }
       />
 
-      <Modal
-        isOpen={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        cabecera={`Editar cohorte: ${selectedCohorte?.nombre || ''}`}
-        size='md'
+      <Modal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen} cabecera={`Editar cohorte: ${selectedCohorte?.nombre || ''}`} size='md'
         cuerpo={
           <form className='space-y-4'>
             <div className='flex flex-col gap-1'>
               <label className='text-sm'>Nombre del cohorte *</label>
               <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                <input
-                  className='w-full outline-none bg-transparent text-sm'
-                  placeholder='Ej: 2025-I'
-                  value={editFormData.nombre}
-                  onChange={(e) => setEditFormData({ ...editFormData, nombre: e.target.value })}
-                />
+                <input className='w-full outline-none bg-transparent text-sm' placeholder='Ej: 2025-I' value={editFormData.nombre} onChange={(e) => setEditFormData({ ...editFormData, nombre: e.target.value })} />
               </div>
             </div>
           </form>
         }
-        footer={
-          <Boton onClick={handleEditSubmit} color='danger'>
-            Guardar cambios
-          </Boton>
-        }
+        footer={<Boton onClick={handleEditSubmit} color='danger'>Guardar cambios</Boton>}
       />
 
-      <Modal
-        isOpen={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        cabecera='Crear nuevo cohorte'
-        size='md'
+      <Modal isOpen={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} cabecera='Crear nuevo cohorte' size='md'
         cuerpo={
           <form className='space-y-4'>
             <div className='flex flex-col gap-1'>
               <label className='text-sm'>Nombre del cohorte *</label>
               <div className='border border-gris-institucional rounded-[15px] px-3 py-2'>
-                <input
-                  className='w-full outline-none bg-transparent text-sm'
-                  placeholder='Ej: 2025-I'
-                  value={createFormData.nombre}
-                  onChange={(e) => setCreateFormData({ ...createFormData, nombre: e.target.value })}
-                />
+                <input className='w-full outline-none bg-transparent text-sm' placeholder='Ej: 2025-I' value={createFormData.nombre} onChange={(e) => setCreateFormData({ ...createFormData, nombre: e.target.value })} />
               </div>
             </div>
           </form>
         }
-        footer={
-          <Boton onClick={handleCreateSubmit} color='danger'>
-            Crear cohorte
-          </Boton>
-        }
+        footer={<Boton onClick={handleCreateSubmit} color='danger'>Crear cohorte</Boton>}
       />
 
-      <AlertaModal
-        isOpen={alertaModalOpen}
-        onClose={() => setAlertaModalOpen(false)}
-        message={alertaMessage}
-        type={alertaType}
-        titulo={alertaTitulo}
-      />
+      <AlertaModal isOpen={alertaModalOpen} onClose={() => setAlertaModalOpen(false)} message={alertaMessage} type={alertaType} titulo={alertaTitulo} />
     </div>
   )
 }

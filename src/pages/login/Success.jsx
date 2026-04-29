@@ -16,7 +16,9 @@ export default function Success() {
          console.log('Usuario decodificado:', user)
          console.log('Role:', user?.role)
 
-         if (user?.role.toLowerCase() === "estudiante") {
+         const rol = user?.role?.toLowerCase()
+
+         if (rol === "estudiante") {
             fetch(`${backendUrl}/api/estudiantes/email/${user.email}`)
                .then(r => r.json())
                .then(data => {
@@ -32,7 +34,9 @@ export default function Success() {
             return
          }
 
-         if (user?.role.toLowerCase() === "docente") { navigate("/listado-proyectos"); return }
+         if (rol === "docente") { navigate("/listado-proyectos"); return }
+         if (rol === "director" || rol === "director de programa") { navigate("/academico/programas"); return }
+
          navigate("/estado-proyecto")
 
       } catch (error) {
