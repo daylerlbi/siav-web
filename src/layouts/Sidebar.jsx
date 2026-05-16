@@ -121,7 +121,6 @@ const Sidebar = () => {
   const opcionesAcademico = [
     { label: 'Programas', href: '/academico/programas' },
     { label: 'Pénsums', href: '/academico/pensums' },
-    { label: 'Cohortes', href: '/academico/cohortes' },
     { label: 'Materias', href: '/academico/materias' },
     { label: 'Grupos', href: '/academico/grupos' },
     ...(esEstudiante ? [{ label: 'Mis Notas', href: '/academico/mis-notas' }] : [])
