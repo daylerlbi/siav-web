@@ -119,12 +119,13 @@ const Sidebar = () => {
   }
 
   const opcionesAcademico = [
-    { label: 'Programas', href: '/academico/programas' },
-    { label: 'Pénsums', href: '/academico/pensums' },
-    { label: 'Materias', href: '/academico/materias' },
-    { label: 'Grupos', href: '/academico/grupos' },
-    ...(esEstudiante ? [{ label: 'Mis Notas', href: '/academico/mis-notas' }] : [])
-  ]
+  { label: 'Programas', href: '/academico/programas' },
+  { label: 'Pénsums', href: '/academico/pensums' },
+  ...(!esEstudiante ? [{ label: 'Cohortes', href: '/academico/cohortes' }] : []),
+  { label: 'Materias', href: '/academico/materias' },
+  { label: 'Grupos', href: '/academico/grupos' },
+  ...(esEstudiante ? [{ label: 'Mis Notas', href: '/academico/mis-notas' }] : [])
+]
 
   return (
     <div className={`bg-rojo-claro min-h-full transition-all duration-300 min-w-0 overflow-hidden ${isOpen ? 'w-[240px] px-4' : 'w-0'}`}>
