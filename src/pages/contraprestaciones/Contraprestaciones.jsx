@@ -21,7 +21,7 @@ const Contraprestaciones = () => {
   const [approving, setApproving] = useState(false)
   const [currentContraprestacion, setCurrentContraprestacion] = useState(null)
   const fileInputRef = useRef(null)
-  const [setGeneratingCertificate] = useState(false)
+  const [generatingCertificate, setGeneratingCertificate] = useState(false)
 
   const [alertaModalOpen, setAlertaModalOpen] = useState(false)
   const [alertaMessage, setAlertaMessage] = useState('')

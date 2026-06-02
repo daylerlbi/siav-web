@@ -71,7 +71,7 @@ const VerContraprestacion = () => {
 
   const fetchContraprestacionData = () => {
     setLoading(true)
-    fetch(`${backendUrl}/contraprestaciones/${id}`)
+    fetch(`${backendUrl}/api/contraprestaciones/${id}`)
       .then(async (response) => {
         if (!response.ok) {
           const mensajeError = await extraerMensajeError(response)
@@ -166,7 +166,7 @@ const VerContraprestacion = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/contraprestaciones/aprobar/${id}`,
+        `${backendUrl}/api/contraprestaciones/aprobar/${id}`,
         {
           method: 'POST',
           body: formData,
@@ -223,7 +223,7 @@ const VerContraprestacion = () => {
 
       // Realizar petición POST para generar el certificado
       const response = await fetch(
-        `${backendUrl}/contraprestaciones/generar/certificado/${contraprestacion.id}`,
+        `${backendUrl}/api/contraprestaciones/generar/certificado/${contraprestacion.id}`,
         {
           method: 'POST',
           headers: {
@@ -307,7 +307,7 @@ const VerContraprestacion = () => {
       setDownloadingReport(true)
 
       // Hacer la solicitud al nuevo endpoint con responseType blob para manejar archivos
-      const response = await fetch(`${backendUrl}/s3/download/${soporteId}`, {
+      const response = await fetch(`${backendUrl}/api/s3/download/${soporteId}`, {
         method: 'GET',
         headers: {
           Accept: '*/*'
@@ -624,7 +624,7 @@ const VerContraprestacion = () => {
       </div>
 
       {/* Soporte documental (solo se muestra si está aprobada) */}
-      {contraprestacion.aprobada && contraprestacion.soporte && (
+      {contraprestacion.soporte && (
         <>
           <p className='text-normal mt-8'>Informe de Contraprestación</p>
           <Divider className='mb-4' />

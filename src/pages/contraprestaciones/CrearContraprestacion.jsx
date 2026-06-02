@@ -1,8 +1,8 @@
-import React from 'react'
-import { Form, Input, Divider, DatePicker, Autocomplete, AutocompleteItem } from '@heroui/react'
+import React, { useRef } from 'react'
+import { Form, Divider, DatePicker, Autocomplete, AutocompleteItem } from '@heroui/react'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Upload, FileText, X } from 'lucide-react'
 import Boton from '../../components/Boton'
 import { today, getLocalTimeZone } from '@internationalized/date'
 import AlertaModal from '../../components/AlertaModal'
@@ -15,9 +15,11 @@ const CrearContraprestacion = () => {
   const [estudianteId, setEstudianteId] = useState(null)
   const [tipoContraprestacionId, setTipoContraprestacionId] = useState(null)
   const [actividades, setActividades] = useState('')
-  const [fechaInicio, setFechaInicio] = useState(null)
-  const [fechaFin, setFechaFin] = useState(null)
-  const [porcentaje, setPorcentaje] = useState('')
+  const [fechaEntrega, setFechaEntrega] = useState(null)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [fileName, setFileName] = useState('')
+  const [fileError, setFileError] = useState(null)
+  const fileInputRef = useRef(null)
 
   const [estudiantes, setEstudiantes] = useState([])
   const [tiposContraprestacion, setTiposContraprestacion] = useState([])
@@ -52,21 +54,21 @@ const CrearContraprestacion = () => {
     setAlertaModalOpen(true)
   }
 
-  const minDateInicio = today(getLocalTimeZone()).subtract({ years: 1 })
-  const maxDateFin = today(getLocalTimeZone()).add({ years: 1 })
+  const minDate = today(getLocalTimeZone()).subtract({ years: 1 })
+  const maxDate = today(getLocalTimeZone()).add({ years: 1 })
 
   useEffect(() => {
     if (isEstudiante && estudianteIdLocal) {
       setEstudianteId(parseInt(estudianteIdLocal))
     }
 
-    fetch(`${backendUrl}/contraprestaciones/tipos`)
+    fetch(`${backendUrl}/api/contraprestaciones/tipos`)
       .then(async r => { if (!r.ok) throw new Error(await extraerMensajeError(r)); return r.json() })
       .then(data => setTiposContraprestacion(data))
       .catch(err => showAlerta(err.message, 'error', 'Error al cargar tipos'))
 
     if (!isEstudiante) {
-      fetch(`${backendUrl}/estudiantes/listar/estado/1`)
+      fetch(`${backendUrl}/api/estudiantes/listar/estado/1`)
         .then(async r => { if (!r.ok) throw new Error(await extraerMensajeError(r)); return r.json() })
         .then(data => setEstudiantes(data))
         .catch(err => showAlerta(err.message, 'error', 'Error al cargar estudiantes'))
@@ -75,27 +77,44 @@ const CrearContraprestacion = () => {
 
   const limpiarCampos = () => {
     if (!isEstudiante) setEstudianteId(null)
-    setTipoContraprestacionId(null); setActividades(''); setFechaInicio(null); setFechaFin(null); setPorcentaje('')
+    setTipoContraprestacionId(null); setActividades(''); setFechaEntrega(null)
+    setSelectedFile(null); setFileName(''); setFileError(null)
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]; if (!file) return; setFileError(null)
+    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    if (!validTypes.includes(file.type)) { setFileError('Solo se permiten archivos PDF o DOCX'); setSelectedFile(null); setFileName(''); return }
+    if (file.size > 10 * 1024 * 1024) { setFileError('El archivo no debe exceder los 10MB'); setSelectedFile(null); setFileName(''); return }
+    setSelectedFile(file); setFileName(file.name)
   }
 
   const onSubmit = async (e) => {
     e.preventDefault(); setLoading(true)
-    if (!estudianteId || !tipoContraprestacionId || !actividades || !fechaInicio) {
+    if (!estudianteId || !tipoContraprestacionId || !actividades || !fechaEntrega) {
       showAlerta('Por favor complete todos los campos requeridos', 'error', 'Campos incompletos')
       setLoading(false); return
     }
-    crearContraprestacion()
+    await crearContraprestacion()
   }
 
   const crearContraprestacion = async () => {
-    const formattedFechaInicio = fechaInicio ? fechaInicio.toDate(getLocalTimeZone()).toISOString().split('T')[0] : null
-    const formattedFechaFin = fechaFin ? fechaFin.toDate(getLocalTimeZone()).toISOString().split('T')[0] : null
-    const contraprestacionDTO = { estudianteId, tipoContraprestacionId, actividades, fechaInicio: formattedFechaInicio, fechaFin: formattedFechaFin }
+    const formattedFecha = fechaEntrega ? fechaEntrega.toDate(getLocalTimeZone()).toISOString().split('T')[0] : null
+    const contraprestacionDTO = {
+      estudianteId, tipoContraprestacionId, actividades,
+      fechaInicio: formattedFecha, fechaFin: formattedFecha
+    }
+
     try {
-      const response = await fetch(`${backendUrl}/contraprestaciones/crear`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(contraprestacionDTO)
+      const formData = new FormData()
+      formData.append('datos', JSON.stringify(contraprestacionDTO))
+      if (selectedFile) formData.append('archivo', selectedFile)
+
+      const response = await fetch(`${backendUrl}/api/contraprestaciones/crear`, {
+        method: 'POST',
+        body: formData
       })
+
       const data = await response.json().catch(() => null)
       if (!response.ok) {
         let errorMessage = 'Error al crear la contraprestación'
@@ -107,6 +126,7 @@ const CrearContraprestacion = () => {
         else if (response.status === 409) errorMessage = 'Ya existe una contraprestación para este estudiante en el semestre actual'
         throw new Error(errorMessage)
       }
+
       showAlerta(data?.message || 'Contraprestación creada con éxito', 'success', 'Contraprestación creada')
       limpiarCampos()
       setTimeout(() => { navigate('/matricula/contraprestaciones') }, 2000)
@@ -160,8 +180,8 @@ const CrearContraprestacion = () => {
               <div className='w-1/2 pr-2'>
                 <Autocomplete variant='bordered' className='w-full' defaultItems={tiposContraprestacion} selectedKey={tipoContraprestacionId?.toString()} label='' size='md' placeholder='Selecciona el tipo' labelPlacement='outside' isRequired
                   onSelectionChange={(id) => {
-                    if (id) { const tipo = tiposContraprestacion.find(t => t.id.toString() === id); setTipoContraprestacionId(parseInt(id)); setPorcentaje(`${tipo.porcentaje}`) }
-                    else { setTipoContraprestacionId(null); setPorcentaje('') }
+                    if (id) setTipoContraprestacionId(parseInt(id))
+                    else setTipoContraprestacionId(null)
                   }}>
                   {(tipo) => <AutocompleteItem key={tipo.id.toString()}>{tipo.nombre}</AutocompleteItem>}
                 </Autocomplete>
@@ -169,29 +189,17 @@ const CrearContraprestacion = () => {
             </div>
             <div className='w-1/2 flex flex-row'>
               <div className='w-1/3 h-[40px] flex items-center pl-2'>
-                <label className='font-medium'>Fecha de inicio</label>
+                <label className='font-medium'>Fecha de entrega del informe</label>
               </div>
               <div className='w-2/3'>
-                <DatePicker classNames={{ inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]' }} className='w-full' labelPlacement='outside' type='date' isRequired firstDayOfWeek='mon' showMonthAndYearPickers calendarProps={{ color: 'danger', classNames: { cellButton: 'data-[selected=true]:bg-rojo-institucional data-[selected=true]:data-[hover=true]:-bg-rojo-institucional' } }} minValue={minDateInicio} value={fechaInicio || undefined} onChange={(value) => setFechaInicio(value)} />
-              </div>
-            </div>
-          </div>
-
-          <div className='w-full flex flex-row mb-4'>
-            <div className='w-1/2 flex flex-row'>
-              <div className='w-1/2 h-[40px] flex items-center'>
-                <label className='font-medium'>Porcentaje</label>
-              </div>
-              <div className='w-1/2 pr-2'>
-                <Input classNames={{ inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]' }} type='text' value={porcentaje} readOnly />
-              </div>
-            </div>
-            <div className='w-1/2 flex flex-row'>
-              <div className='w-1/3 h-[40px] flex items-center pl-2'>
-                <label className='font-medium'>Fecha de finalización</label>
-              </div>
-              <div className='w-2/3'>
-                <DatePicker classNames={{ inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]' }} className='w-full' labelPlacement='outside' type='date' firstDayOfWeek='mon' showMonthAndYearPickers calendarProps={{ color: 'danger', classNames: { cellButton: 'data-[selected=true]:bg-rojo-institucional data-[selected=true]:data-[hover=true]:-bg-rojo-institucional' } }} minValue={fechaInicio || minDateInicio} maxValue={maxDateFin} value={fechaFin || undefined} onChange={(value) => setFechaFin(value)} />
+                <DatePicker
+                  classNames={{ inputWrapper: 'border border-gris-institucional rounded-[15px] w-full max-h-[40px]' }}
+                  className='w-full' labelPlacement='outside' type='date' isRequired
+                  firstDayOfWeek='mon' showMonthAndYearPickers
+                  calendarProps={{ color: 'danger', classNames: { cellButton: 'data-[selected=true]:bg-rojo-institucional' } }}
+                  minValue={minDate} maxValue={maxDate}
+                  value={fechaEntrega || undefined} onChange={(value) => setFechaEntrega(value)}
+                />
               </div>
             </div>
           </div>
@@ -199,14 +207,41 @@ const CrearContraprestacion = () => {
 
         <p className='text-normal mt-8'>Actividades a realizar</p>
         <Divider className='mb-4' />
-        <div className='w-full flex flex-col'>
-          <div className='w-full flex flex-row'>
+        <div className='w-full flex flex-row gap-4'>
+          <div className='w-1/2 flex flex-row'>
             <div className='w-1/4 flex items-start mt-3'>
               <label className='font-medium'>Descripción</label>
             </div>
-            <div className='w-1/2'>
+            <div className='w-3/4'>
               <textarea className='w-full p-3 border border-gris-institucional rounded-[15px] min-h-[100px] resize-none' name='actividades' value={actividades} onChange={(e) => setActividades(e.target.value)} placeholder='Describa las actividades que realizará el estudiante' required />
             </div>
+          </div>
+
+          <div className='w-1/2 flex flex-col'>
+            <label className='font-medium mb-2'>Archivo de soporte (PDF o DOCX)</label>
+            <input type='file' ref={fileInputRef} className='hidden' onChange={handleFileChange} accept='.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document' />
+            <div className='border-2 border-dashed border-gray-300 rounded-lg p-4 text-center'>
+              {fileName ? (
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <FileText className='text-rojo-institucional' size={20} />
+                    <p className='text-sm font-medium truncate max-w-[180px]'>{fileName}</p>
+                  </div>
+                  <button type='button' className='p-1 bg-gray-200 rounded-full' onClick={() => { setSelectedFile(null); setFileName('') }}>
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Upload className='h-8 w-8 text-gray-400 mx-auto mb-2' />
+                  <p className='text-xs text-gray-500 mb-2'>PDF o DOCX (MÁX. 10MB)</p>
+                  <button type='button' onClick={() => fileInputRef.current.click()} className='py-1.5 px-4 border border-rojo-institucional text-rojo-institucional rounded-md hover:bg-rojo-institucional hover:text-white transition-colors text-sm'>
+                    Seleccionar archivo
+                  </button>
+                </>
+              )}
+            </div>
+            {fileError && <p className='text-red-600 mt-1 text-xs'>{fileError}</p>}
           </div>
         </div>
 

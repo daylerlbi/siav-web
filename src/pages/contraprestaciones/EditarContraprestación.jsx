@@ -94,7 +94,7 @@ const EditarContraprestacion = () => {
     const fetchContraprestacion = async () => {
       setLoadingData(true)
       try {
-        const response = await fetch(`${backendUrl}/contraprestaciones/${id}`)
+        const response = await fetch(`${backendUrl}/api/contraprestaciones/${id}`)
         if (!response.ok) {
           const mensajeError = await extraerMensajeError(response)
           throw new Error(mensajeError)
@@ -131,7 +131,7 @@ const EditarContraprestacion = () => {
   // Cargar tipos de contraprestación y estudiantes activos
   useEffect(() => {
     // Cargar tipos de contraprestación
-    fetch(`${backendUrl}/contraprestaciones/tipos`)
+    fetch(`${backendUrl}/api/contraprestaciones/tipos`)
       .then(async (response) => {
         if (!response.ok) {
           const mensajeError = await extraerMensajeError(response)
@@ -152,7 +152,7 @@ const EditarContraprestacion = () => {
       })
 
     // Cargar estudiantes activos (estado 1 = En curso)
-    fetch(`${backendUrl}/estudiantes/listar/estado/1`)
+    fetch(`${backendUrl}/api/estudiantes/listar/estado/1`)
       .then(async (response) => {
         if (!response.ok) {
           const mensajeError = await extraerMensajeError(response)
@@ -222,7 +222,7 @@ const EditarContraprestacion = () => {
 
     try {
       const response = await fetch(
-        `${backendUrl}/contraprestaciones/actualizar/${id}`,
+        `${backendUrl}/api/contraprestaciones/actualizar/${id}`,
         {
           method: 'PUT',
           headers: {
