@@ -63,10 +63,25 @@ const Inclusion = () => {
   }
 
   useEffect(() => {
-    obtenerEstudiantes()
-    localStorage.removeItem('estudianteMatricula')
-    localStorage.removeItem('materiaMatricular')
-  }, [])
+  const googleToken = localStorage.getItem('googleToken')
+  const estudianteIdLocal = localStorage.getItem('estudianteId')
+  const isEstudiante = (() => {
+    try {
+      if (!googleToken) return false
+      const payload = JSON.parse(atob(googleToken.split('.')[1]))
+      return (payload.role || '').toLowerCase() === 'estudiante'
+    } catch { return false }
+  })()
+
+  if (isEstudiante && estudianteIdLocal) {
+    Navigate(`matricular/${estudianteIdLocal}`)
+    return
+  }
+
+  obtenerEstudiantes()
+  localStorage.removeItem('estudianteMatricula')
+  localStorage.removeItem('materiaMatricular')
+}, [])
 
   useEffect(() => {
     if (estudiantes.length > 0) {
