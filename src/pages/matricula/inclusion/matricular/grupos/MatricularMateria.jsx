@@ -33,7 +33,7 @@ const MatricularMateria = () => {
 
   useEffect(() => {
     setCargandoGrupos(true)
-    fetch(`${backendUrl}/matriculas/grupos/materia/${codigo}`)
+    fetch(`${backendUrl}/api/matriculas/grupos/materia/${codigo}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Error al cargar los grupos')
@@ -75,7 +75,7 @@ const MatricularMateria = () => {
       nuevaMatricula: true
     }
 
-    fetch(`${backendUrl}/matriculas/crear`, {
+    fetch(`${backendUrl}/api/matriculas/crear`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

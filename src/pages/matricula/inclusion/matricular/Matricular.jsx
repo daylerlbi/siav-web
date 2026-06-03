@@ -50,7 +50,7 @@ const Matricular = () => {
 
   //--------------Uso de los estados------------------
   useEffect(() => {
-    fetch(`${backendUrl}/estudiantes/${id}`)
+    fetch(`${backendUrl}/api/estudiantes/${id}`)
       .then((response) => response.json())
       .then((data) => {
         const nombreUnido = [
@@ -82,7 +82,7 @@ const Matricular = () => {
 
   useEffect(() => {
     if (user && user.Id) {
-      fetch(`${backendUrl}/matriculas/correo-enviado/${user.Id}`)
+      fetch(`${backendUrl}/api/matriculas/correo-enviado/${user.Id}`)
         .then((response) => response.json())
         .then((data) => {
           setCorreoEnviado(data)
@@ -105,9 +105,9 @@ const Matricular = () => {
 
       Promise.all([
         fetch(
-          `${backendUrl}/matriculas/materias/nomatriculadas/${user.Id}`
+          `${backendUrl}/api/matriculas/materias/nomatriculadas/${user.Id}`
         ).then((response) => response.json()),
-        fetch(`${backendUrl}/matriculas/estudiante/${user.Id}`).then(
+        fetch(`${backendUrl}/api/matriculas/estudiante/${user.Id}`).then(
           (response) => response.json()
         )
       ])
@@ -156,7 +156,7 @@ const Matricular = () => {
 
   const verCambiosMatricula = () => {
     if (user && user.Id) {
-      fetch(`${backendUrl}/matriculas/cambio/estudiante/${user.Id}`)
+      fetch(`${backendUrl}/api/matriculas/cambio/estudiante/${user.Id}`)
         .then((response) => {
           if (!response.ok) {
             throw new Error('No se encontraron cambios para este estudiante')
@@ -193,7 +193,7 @@ const Matricular = () => {
         ? userStorage.nombre
         : 'Usuario no identificado'
 
-    fetch(`${backendUrl}/matriculas/correo/estudiante/${user.Id}`, {
+    fetch(`${backendUrl}/api/matriculas/correo/estudiante/${user.Id}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ const Matricular = () => {
     materiasMatriculadas.forEach((materiaMatriculada) => {
       if (materiaMatriculada.codigoMateria === materia.Código) {
         const matriculaId = materiaMatriculada.id
-        fetch(`${backendUrl}/matriculas/${matriculaId}`, {
+        fetch(`${backendUrl}/api/matriculas/${matriculaId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
