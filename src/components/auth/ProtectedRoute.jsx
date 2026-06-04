@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+﻿import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../lib/hooks/useAuth'
 import { useEffect, useState } from 'react'
 import { jwtDecode } from 'jwt-decode'
@@ -7,7 +7,6 @@ import { jwtDecode } from 'jwt-decode'
 const ADMIN_ONLY_ROUTES = [
   
   '/pregrado',
-  '/posgrado',
   '/admin'
 ]
 
@@ -60,7 +59,7 @@ const ProtectedRoute = () => {
     }
   }, [isAuthenticated])
 
-  // Función para imprimir la información del usuario
+  // FunciÃ³n para imprimir la informaciÃ³n del usuario
   useEffect(() => {
     if (isAuthenticated && user) {
       // Si hay un token, intentar decodificarlo y mostrar su contenido
@@ -69,7 +68,7 @@ const ProtectedRoute = () => {
           // Dividir el token en sus partes (header, payload, signature)
           const tokenParts = token.split('.')
           if (tokenParts.length === 3) {
-            // Decodificar la parte del payload (índice 1)
+            // Decodificar la parte del payload (Ã­ndice 1)
           }
         } catch (error) {
           console.error('Error al decodificar el token:', error)
@@ -86,7 +85,7 @@ const ProtectedRoute = () => {
     )
   }
 
-  // Si no hay tokens válidos, redirigir según la ruta que intenta acceder
+  // Si no hay tokens vÃ¡lidos, redirigir segÃºn la ruta que intenta acceder
   if (!hasValidToken) {
     // Si estaban intentando acceder a rutas de proyectos, redirigir a login de Google
     if (
@@ -112,7 +111,7 @@ const ProtectedRoute = () => {
     currentPath.startsWith(route)
   )
 
-  // VALIDACIÓN PRINCIPAL: Si es usuario de Google e intenta acceder a rutas administrativas, redirigir inmediatamente
+  // VALIDACIÃ“N PRINCIPAL: Si es usuario de Google e intenta acceder a rutas administrativas, redirigir inmediatamente
   if (isGoogleUser && (requiresAdmin || requiresSuperAdmin)) {
     return (
       <Navigate
@@ -120,13 +119,13 @@ const ProtectedRoute = () => {
         replace
         state={{
           message:
-            'Los usuarios de Google no tienen acceso a funcionalidades administrativas. Debe iniciar sesión con una cuenta de administrador.'
+            'Los usuarios de Google no tienen acceso a funcionalidades administrativas. Debe iniciar sesiÃ³n con una cuenta de administrador.'
         }}
       />
     )
   }
 
-  // VALIDACIÓN SECUNDARIA: Si intenta acceder a rutas administrativas sin las credenciales correctas
+  // VALIDACIÃ“N SECUNDARIA: Si intenta acceder a rutas administrativas sin las credenciales correctas
   if (requiresAdmin || requiresSuperAdmin) {
     const accessToken = localStorage.getItem('accessToken')
     const googleToken = localStorage.getItem('googleToken')
@@ -153,7 +152,7 @@ const ProtectedRoute = () => {
           replace
           state={{
             message:
-              'No tienes permisos para acceder a esta página. Debes iniciar sesión como administrador.'
+              'No tienes permisos para acceder a esta pÃ¡gina. Debes iniciar sesiÃ³n como administrador.'
           }}
         />
       )
@@ -167,7 +166,7 @@ const ProtectedRoute = () => {
         to='/'
         replace
         state={{
-          message: 'Solo los Super Administradores pueden acceder a esta página'
+          message: 'Solo los Super Administradores pueden acceder a esta pÃ¡gina'
         }}
       />
     )
@@ -179,13 +178,14 @@ const ProtectedRoute = () => {
       <Navigate
         to='/'
         replace
-        state={{ message: 'No tienes permisos para acceder a esta página' }}
+        state={{ message: 'No tienes permisos para acceder a esta pÃ¡gina' }}
       />
     )
   }
 
-  // Si tiene token válido, permitir el acceso
+  // Si tiene token vÃ¡lido, permitir el acceso
   return <Outlet />
 }
 
 export default ProtectedRoute
+

@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react'
+﻿import { ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import PropTypes from 'prop-types'
 import { Tooltip } from '@heroui/react'
@@ -18,12 +18,14 @@ const Menu = ({
   const { userRole } = useAuth()
 
   const isRouteAllowed = (route) => {
-  // Para usuarios de Google (estudiantes), solo permitir acceso a Académico, Matrícula y Usuarios
+  // Para usuarios de Google (estudiantes), solo permitir acceso a AcadÃ©mico, MatrÃ­cula y Usuarios
   if (userRole === 'ROLE_GOOGLE') {
     return (
       route.startsWith('/academico') ||
       route.startsWith('/matricula') ||
-      route.startsWith('/usuarios')
+      route.startsWith('/usuarios') ||
+      route.startsWith('/docente') ||
+      route.startsWith('/posgrado')
     )
   }
     if (!userRole) {
@@ -47,7 +49,7 @@ const Menu = ({
     )
   }
   const handleNavigate = (event, href, label, codigo) => {
-    event.preventDefault() // Prevenir la navegación por defecto
+    event.preventDefault() // Prevenir la navegaciÃ³n por defecto
     if (isRouteAllowed(href)) {
       handleOptionClick(label, codigo)
       navigate(href)
@@ -107,7 +109,7 @@ const Menu = ({
                         : 'hover:text-rojo-institucional hover:bg-rojo-institucional hover:bg-opacity-10'
                     }`}
                   >
-                    {'· ' + sub.label}
+                    {'Â· ' + sub.label}
                   </Link>
                 </Tooltip>
               ))}
@@ -162,3 +164,4 @@ Menu.propTypes = {
 }
 
 export default Menu
+

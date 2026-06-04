@@ -3,9 +3,10 @@ import Tabla from '../../components/Tabla'
 import Boton from '../../components/Boton'
 import Modal from '../../components/Modal'
 import { Form, Autocomplete, AutocompleteItem, Input } from '@heroui/react'
-import { Eye, Pencil } from 'lucide-react'
+import { Eye, Pencil, BookOpen } from 'lucide-react'
 import AlertaModal from '../../components/AlertaModal'
 import { getBackendUrl, getMoodleToken, getMoodleUrl } from '../../lib/controllers/endpoints'
+import { useNavigate } from 'react-router-dom'
 
 const Grupos = () => {
   const [grupos, setGrupos] = useState([])
@@ -16,6 +17,7 @@ const Grupos = () => {
   const backendUrl = getBackendUrl()
   const moodleUrl = getMoodleUrl()
   const moodleToken = getMoodleToken()
+  const navigate = useNavigate()
 
   const googleToken = localStorage.getItem('googleToken')
   const estudianteId = localStorage.getItem('estudianteId')
@@ -149,6 +151,7 @@ const Grupos = () => {
     ? [{ icono: <Eye className='text-[25px]' />, tooltip: 'Ver', accion: (grupo) => verGrupo(grupo) }]
     : [
         { icono: <Eye className='text-[25px]' />, tooltip: 'Ver', accion: (grupo) => verGrupo(grupo) },
+        { icono: <BookOpen className='text-[25px]' />, tooltip: 'Ver notas', accion: (grupo) => navigate(`/notas/posgrado/${grupo.id}`) },
         { icono: <Pencil className='text-[25px]' />, tooltip: 'Editar', accion: (grupo) => prepararEdicion(grupo) }
       ]
 

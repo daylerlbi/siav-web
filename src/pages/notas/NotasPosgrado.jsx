@@ -18,130 +18,107 @@ const NotasPosgrado = () => {
   const [informacion, setInformacion] = useState([])
   const [cargandoNotas, setCargandoNotas] = useState(true)
   const [cargando, setCargando] = useState(false)
-
-  // Nuevo estado para controlar si hay notas registradas
+  const [cargandoMoodle, setCargandoMoodle] = useState(false)
   const [notasRegistradas, setNotasRegistradas] = useState(false)
+  const [notasEditadas, setNotasEditadas] = useState({}) // notas manuales por estudianteId
 
-  // Estados para los modales
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [estudianteActual, setEstudianteActual] = useState(null)
   const [operacionGrupal, setOperacionGrupal] = useState(false)
 
-  // Estados para el AlertaModal
   const [isAlertOpen, setIsAlertOpen] = useState(false)
   const [alertType, setAlertType] = useState('success')
   const [alertMessage, setAlertMessage] = useState('')
   const [alertTitulo, setAlertTitulo] = useState('')
 
-  // Efecto para verificar si hay notas registradas
   useEffect(() => {
-    if (estudiantes.length > 0) {
-      // Tomamos el primer estudiante para verificar si ya tiene notas registradas
-      verificarNotasRegistradas()
-    }
-  }, [estudiantes, id])
+    fetch(`${backendUrl}/api/grupos/vinculado/${id}`)
+      .then(r => r.json())
+      .then(data => setGrupo(data))
 
-  // Función para verificar si las notas ya han sido registradas
-  const verificarNotasRegistradas = async () => {
-    try {
-      if (estudiantes.length === 0) return
-
-      const primerEstudiante = estudiantes[0]
-      const respMatriculas = await fetch(
-        `${backendUrl}/matriculas/estudiante/${primerEstudiante.id}`
-      )
-
-      if (!respMatriculas.ok) {
-        return
-      }
-
-      const matriculas = await respMatriculas.json()
-      const matriculaGrupo = matriculas.find(
-        (m) => m.grupoId.toString() === id.toString()
-      )
-
-      if (matriculaGrupo) {
-        // Si la nota no es null, significa que ya se registraron notas al menos una vez
-        const tieneNotasRegistradas = matriculaGrupo.nota !== null
-        setNotasRegistradas(tieneNotasRegistradas)
-      }
-    } catch (error) {
-      console.error('Error al verificar si hay notas registradas:', error)
-    }
-  }
-
-  useEffect(() => {
-    fetch(`${backendUrl}/grupos/vinculado/${id}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setGrupo(data)
-      })
-
-    fetch(`${backendUrl}/estudiantes/matriculados/grupo-cohorte/${id}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setEstudiantes(data)
-      })
+    fetch(`${backendUrl}/api/estudiantes/matriculados/grupo-cohorte/${id}`)
+      .then(r => r.json())
+      .then(data => setEstudiantes(data))
   }, [])
 
   useEffect(() => {
-    fetch(
-      `${moodleUrl}?wstoken=${moodleToken}&` +
-      `moodlewsrestformat=json&` +
-      `wsfunction=gradereport_user_get_grade_items&` +
-      `courseid=${grupo?.moodleId}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setNotas(data.usergrades)
-      })
-  }, [grupo])
-
-  // Nuevo useEffect para procesar la información de estudiantes y notas
-  useEffect(() => {
-    // Asegurarse de que los arreglos no estén vacíos
-    if (estudiantes.length > 0 && notas && notas.length > 0) {
-      const infoEstudiantes = estudiantes.map((estudiante) => {
-        // Generar el nombre completo del estudiante
-        const nombreCompleto = [
-          estudiante.nombre,
-          estudiante.nombre2,
-          estudiante.apellido,
-          estudiante.apellido2
-        ]
-          .filter(Boolean)
-          .join(' ')
-
-        // Buscar las notas correspondientes al estudiante por su moodleId
-        const notasEstudiante = notas.find(
-          (nota) => nota.userid.toString() === estudiante.moodleId.toString()
-        )
-
-        // Obtener la nota definitiva (última posición del arreglo gradeitems)
-        let notaDefinitiva = null
-        if (notasEstudiante && notasEstudiante.gradeitems.length > 0) {
-          // Obtener la última nota (la definitiva)
-          const ultimaNota =
-            notasEstudiante.gradeitems[notasEstudiante.gradeitems.length - 1]
-          notaDefinitiva = ultimaNota.graderaw
-        }
-
-        // Devolver la información procesada del estudiante
-        return {
-          ...estudiante,
-          Código: estudiante.codigo,
-          Nombre: nombreCompleto,
-          DEF: notaDefinitiva ? notaDefinitiva : '-'
-        }
-      })
-
-      // Actualizar el estado con la información procesada
-      setInformacion(infoEstudiantes)
+    if (estudiantes.length > 0) {
+      verificarNotasRegistradas()
+      // Cargar datos base sin esperar Moodle
+      const infoBase = estudiantes.map(e => ({
+        ...e,
+        Código: e.codigo,
+        Nombre: [e.nombre, e.nombre2, e.apellido, e.apellido2].filter(Boolean).join(' '),
+        DEF: notasEditadas[e.id] !== undefined ? notasEditadas[e.id] : '-',
+        MoodleDEF: '-'
+      }))
+      setInformacion(infoBase)
       setCargandoNotas(false)
     }
-  }, [notas, estudiantes])
+  }, [estudiantes])
 
-  // Función para mostrar alerta
+  useEffect(() => {
+    if (grupo?.moodleId) {
+      cargarNotasMoodle()
+    }
+  }, [grupo])
+
+  const cargarNotasMoodle = async () => {
+    setCargandoMoodle(true)
+    try {
+      const response = await fetch(
+        `${moodleUrl}?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=gradereport_user_get_grade_items&courseid=${grupo.moodleId}`
+      )
+      const data = await response.json()
+      if (data?.usergrades) {
+        setNotas(data.usergrades)
+      }
+    } catch (error) {
+      console.error('Error al cargar notas de Moodle:', error)
+    } finally {
+      setCargandoMoodle(false)
+    }
+  }
+
+  // Cuando llegan notas de Moodle, actualizar la columna MoodleDEF
+  useEffect(() => {
+    if (notas?.length > 0 && estudiantes.length > 0) {
+      setInformacion(prev => prev.map(est => {
+        const notasEst = notas.find(n => n.userid?.toString() === est.moodleId?.toString())
+        let moodleDEF = '-'
+        if (notasEst?.gradeitems?.length > 0) {
+          const ultima = notasEst.gradeitems[notasEst.gradeitems.length - 1]
+          moodleDEF = ultima.graderaw ?? '-'
+        }
+        return { ...est, MoodleDEF: moodleDEF }
+      }))
+    }
+  }, [notas])
+
+  // Cuando cambia notasEditadas, actualizar DEF en informacion
+  useEffect(() => {
+    if (informacion.length > 0) {
+      setInformacion(prev => prev.map(est => ({
+        ...est,
+        DEF: notasEditadas[est.id] !== undefined ? notasEditadas[est.id] : est.DEF
+      })))
+    }
+  }, [notasEditadas])
+
+  const verificarNotasRegistradas = async () => {
+    try {
+      if (estudiantes.length === 0) return
+      const primerEstudiante = estudiantes[0]
+      const resp = await fetch(`${backendUrl}/api/matriculas/estudiante/${primerEstudiante.id}`)
+      if (!resp.ok) return
+      const matriculas = await resp.json()
+      const matriculaGrupo = matriculas.find(m => m.grupoId?.toString() === id?.toString())
+      if (matriculaGrupo) setNotasRegistradas(matriculaGrupo.nota !== null)
+    } catch (error) {
+      console.error('Error al verificar notas:', error)
+    }
+  }
+
   const mostrarAlerta = (mensaje, tipo, titulo) => {
     setAlertMessage(mensaje)
     setAlertType(tipo)
@@ -149,192 +126,104 @@ const NotasPosgrado = () => {
     setIsAlertOpen(true)
   }
 
-  // Función para obtener el nombre del usuario desde localStorage
   const obtenerNombreUsuario = () => {
-    const userInfoString = localStorage.getItem('userInfo')
-    let nombreUsuario = 'Usuario Sistema'
-    if (userInfoString) {
-      try {
-        const userInfo = JSON.parse(userInfoString)
-        nombreUsuario = userInfo.nombre || nombreUsuario
-      } catch (error) {
-        console.error('Error al parsear userInfo:', error)
-      }
-    }
-    return nombreUsuario
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'))
+      return userInfo?.nombre || 'Usuario Sistema'
+    } catch { return 'Usuario Sistema' }
   }
 
-  // Función para registrar las notas de todos los estudiantes
+  const handleNotaManualChange = (estudianteId, valor) => {
+    const num = parseFloat(valor)
+    if (valor === '' || valor === '-') {
+      setNotasEditadas(prev => ({ ...prev, [estudianteId]: '-' }))
+    } else if (!isNaN(num) && num >= 0 && num <= 5) {
+      setNotasEditadas(prev => ({ ...prev, [estudianteId]: num }))
+    }
+  }
+
+  const copiarDesdeeMoodle = () => {
+    const nuevas = {}
+    informacion.forEach(est => {
+      if (est.MoodleDEF !== '-' && est.MoodleDEF !== null) {
+        nuevas[est.id] = est.MoodleDEF
+      }
+    })
+    setNotasEditadas(nuevas)
+    mostrarAlerta('Notas copiadas desde Moodle', 'success', 'Notas cargadas')
+  }
+
   const registrarNotasEstudiantes = async () => {
     const nombreUsuario = obtenerNombreUsuario()
     const errores = []
-
     for (const estudiante of informacion) {
       try {
-        // Obtener matrículas del estudiante
-        const respMatriculas = await fetch(
-          `${backendUrl}/matriculas/estudiante/${estudiante.id}`
-        )
-        if (!respMatriculas.ok) {
-          throw new Error(`Error al obtener matrículas de ${estudiante.Nombre}`)
-        }
-
-        const matriculas = await respMatriculas.json()
-        const matriculaGrupo = matriculas.find(
-          (m) => m.grupoId.toString() === id.toString()
-        )
-
-        if (!matriculaGrupo) {
-          throw new Error(
-            `No se encontró la matrícula de ${estudiante.Nombre} para este grupo`
-          )
-        }
-
-        // Registrar la nota del estudiante
-        const respRegistrar = await fetch(`${backendUrl}/notas/registrar`, {
+        const resp = await fetch(`${backendUrl}/api/matriculas/estudiante/${estudiante.id}`)
+        if (!resp.ok) throw new Error(`Error al obtener matrículas de ${estudiante.Nombre}`)
+        const matriculas = await resp.json()
+        const matriculaGrupo = matriculas.find(m => m.grupoId?.toString() === id?.toString())
+        if (!matriculaGrupo) throw new Error(`No se encontró matrícula de ${estudiante.Nombre}`)
+        const respReg = await fetch(`${backendUrl}/api/notas/registrar`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Usuario': nombreUsuario
-          },
-          body: JSON.stringify({
-            matriculaId: matriculaGrupo.id,
-            nota: estudiante.DEF,
-            realizadoPor: nombreUsuario
-          })
+          headers: { 'Content-Type': 'application/json', 'X-Usuario': nombreUsuario },
+          body: JSON.stringify({ matriculaId: matriculaGrupo.id, nota: estudiante.DEF, realizadoPor: nombreUsuario })
         })
-
-        if (!respRegistrar.ok) {
-          throw new Error(`Error al registrar la nota de ${estudiante.Nombre}`)
-        }
+        if (!respReg.ok) throw new Error(`Error al registrar nota de ${estudiante.Nombre}`)
       } catch (error) {
         errores.push(`${estudiante.Nombre}: ${error.message}`)
       }
     }
-
     return errores
   }
 
-  // Función para iniciar el proceso de cierre de nota para un estudiante
-  const iniciarCierreNotaEstudiante = (estudiante) => {
-    setEstudianteActual(estudiante)
-    setOperacionGrupal(false)
-    setIsConfirmOpen(true)
-  }
-
-  // Función modificada para registrar la nota de un estudiante individual
   const cerrarNotas = async (estudiante) => {
     setCargando(true)
     try {
       const nombreUsuario = obtenerNombreUsuario()
-
-      // Obtener matrículas del estudiante
-      const respMatriculas = await fetch(
-        `${backendUrl}/matriculas/estudiante/${estudiante.id}`
-      )
-      if (!respMatriculas.ok) {
-        throw new Error('Error al obtener las matrículas del estudiante')
-      }
-
-      const matriculas = await respMatriculas.json()
-      const matriculaGrupo = matriculas.find(
-        (m) => m.grupoId.toString() === id.toString()
-      )
-
-      if (!matriculaGrupo) {
-        throw new Error(
-          'No se encontró la matrícula del estudiante para este grupo'
-        )
-      }
-
-      // Registrar la nota del estudiante
-      const respRegistrar = await fetch(`${backendUrl}/notas/registrar`, {
+      const resp = await fetch(`${backendUrl}/api/matriculas/estudiante/${estudiante.id}`)
+      if (!resp.ok) throw new Error('Error al obtener las matrículas del estudiante')
+      const matriculas = await resp.json()
+      const matriculaGrupo = matriculas.find(m => m.grupoId?.toString() === id?.toString())
+      if (!matriculaGrupo) throw new Error('No se encontró la matrícula del estudiante para este grupo')
+      const respReg = await fetch(`${backendUrl}/api/notas/registrar`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Usuario': nombreUsuario
-        },
-        body: JSON.stringify({
-          matriculaId: matriculaGrupo.id,
-          nota: estudiante.DEF,
-          realizadoPor: nombreUsuario
-        })
+        headers: { 'Content-Type': 'application/json', 'X-Usuario': nombreUsuario },
+        body: JSON.stringify({ matriculaId: matriculaGrupo.id, nota: estudiante.DEF, realizadoPor: nombreUsuario })
       })
-
-      if (!respRegistrar.ok) {
-        throw new Error('Error al registrar la nota del estudiante')
-      }
-
-      // Después de registrar las notas con éxito, actualizamos el estado
+      if (!respReg.ok) throw new Error('Error al registrar la nota del estudiante')
       setNotasRegistradas(true)
-
-      mostrarAlerta(
-        `Nota registrada correctamente para ${estudiante.Nombre}`,
-        'success',
-        'Nota registrada'
-      )
+      mostrarAlerta(`Nota registrada correctamente para ${estudiante.Nombre}`, 'success', 'Nota registrada')
     } catch (error) {
-      console.error('Error durante el proceso de registro de notas:', error)
       mostrarAlerta(error.message, 'error', 'Error al registrar notas')
     } finally {
       setCargando(false)
     }
   }
 
-  // Función para iniciar el proceso de registro de todas las notas
-  const iniciarCierreTodasLasNotas = () => {
-    setOperacionGrupal(true)
-    setIsConfirmOpen(true)
-  }
-
-  // Función para registrar todas las notas del grupo
   const cerrarTodasLasNotas = async () => {
     setCargando(true)
     try {
-      // Registrar notas de todos los estudiantes
-      const erroresRegistro = await registrarNotasEstudiantes()
-
-      // Si llegamos aquí sin errores, actualizamos el estado
+      const errores = await registrarNotasEstudiantes()
       setNotasRegistradas(true)
-
-      // Mostrar resultado final
-      if (erroresRegistro.length > 0) {
-        mostrarAlerta(
-          `Proceso completado con los siguientes errores:\n${erroresRegistro.join('\n')}`,
-          'warning',
-          'Proceso completado con errores'
-        )
+      if (errores.length > 0) {
+        mostrarAlerta(`Proceso completado con errores:\n${errores.join('\n')}`, 'warning', 'Proceso con errores')
       } else {
-        mostrarAlerta(
-          'Todas las notas han sido registradas correctamente',
-          'success',
-          'Proceso completado'
-        )
+        mostrarAlerta('Todas las notas han sido registradas correctamente', 'success', 'Proceso completado')
       }
     } catch (error) {
-      console.error('Error en el proceso completo:', error)
       mostrarAlerta(error.message, 'error', 'Error en el proceso')
     } finally {
       setCargando(false)
     }
   }
 
-  // Función para verificar si hay estudiantes sin nota
-  const hayNotasVacias = () => {
-    return informacion.some(
-      (estudiante) =>
-        estudiante.DEF === null ||
-        estudiante.DEF === undefined ||
-        estudiante.DEF === '-' ||
-        estudiante.DEF === ''
-    )
-  }
+  const hayNotasVacias = () => informacion.some(e => !e.DEF || e.DEF === '-' || e.DEF === '')
 
   const acciones = [
     {
       icono: 'DEF',
       tooltip: 'Registrar nota',
-      accion: (estudiante) => iniciarCierreNotaEstudiante(estudiante),
+      accion: (estudiante) => { setEstudianteActual(estudiante); setOperacionGrupal(false); setIsConfirmOpen(true) },
       disabled: !notasRegistradas
     }
   ]
@@ -343,7 +232,7 @@ const NotasPosgrado = () => {
     <div className='flex flex-col items-center p-4'>
       <div className='w-full'>
         <button
-          className='w-[40px] h-[30px] text-[30px] bg-rojo-mate flex items-center  justify-center rounded-md border border-rojo-mate text-white hover:bg-rojo-oscuro ease-in-out transition-all duration-300'
+          className='w-[40px] h-[30px] text-[30px] bg-rojo-mate flex items-center justify-center rounded-md border border-rojo-mate text-white hover:bg-rojo-oscuro ease-in-out transition-all duration-300'
           onClick={() => window.history.back()}
         >
           <ArrowLeft />
@@ -361,61 +250,80 @@ const NotasPosgrado = () => {
           <div>{estudiantes?.length}</div>
         </div>
       </div>
-      <p className='text-subtitulos mb-8'>Lista de estudiantes</p>
-      <div className='w-full'>
-        <Tabla
-          informacion={informacion}
-          columnas={['Código', 'Nombre', 'DEF']}
-          filtros={['Código', 'Nombre']}
-          acciones={acciones}
-          cargandoContenido={cargandoNotas}
-        />
+
+      {/* Tabla con notas editables */}
+      <p className='text-subtitulos mb-4'>Lista de estudiantes</p>
+      <div className='w-full overflow-x-auto'>
+        <table className='min-w-full divide-y divide-gray-200 border rounded-lg'>
+          <thead className='bg-gray-50'>
+            <tr>
+              <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>Código</th>
+              <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>Nombre</th>
+              <th className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase'>
+                DEF Moodle
+                {cargandoMoodle && <span className='ml-2 text-xs text-gray-400'>(cargando...)</span>}
+              </th>
+              <th className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase'>DEF Manual</th>
+            </tr>
+          </thead>
+          <tbody className='bg-white divide-y divide-gray-200'>
+            {cargandoNotas ? (
+              <tr><td colSpan={4} className='text-center py-8 text-gray-400'>Cargando estudiantes...</td></tr>
+            ) : informacion.map(est => (
+              <tr key={est.id} className='hover:bg-gray-50'>
+                <td className='px-4 py-3 text-sm'>{est.Código}</td>
+                <td className='px-4 py-3 text-sm'>{est.Nombre}</td>
+                <td className='px-4 py-3 text-sm text-center'>
+                  {cargandoMoodle ? <span className='text-gray-400'>...</span> : (est.MoodleDEF ?? '-')}
+                </td>
+                <td className='px-4 py-3 text-center'>
+                  <input
+                    type='number'
+                    min='0'
+                    max='5'
+                    step='0.1'
+                    value={notasEditadas[est.id] !== undefined ? notasEditadas[est.id] : ''}
+                    onChange={(e) => handleNotaManualChange(est.id, e.target.value)}
+                    placeholder='-'
+                    className='w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:outline-none focus:border-rojo-institucional'
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <div className='w-full flex mb-8 mt-14 justify-end'>
+
+      <div className='w-full flex mb-8 mt-8 justify-between items-center'>
+        <Boton onClick={copiarDesdeeMoodle} disabled={cargandoMoodle || notas.length === 0}>
+          {cargandoMoodle ? 'Cargando Moodle...' : 'Copiar notas desde Moodle'}
+        </Boton>
         <Boton
-          onClick={iniciarCierreTodasLasNotas}
+          onClick={() => { setOperacionGrupal(true); setIsConfirmOpen(true) }}
           disabled={cargando || hayNotasVacias()}
-          success={notasRegistradas} // El botón será verde si ya hay notas registradas
+          success={notasRegistradas}
         >
           {cargando ? 'Procesando...' : 'Cerrar todas las notas'}
         </Boton>
       </div>
 
-      {/* Modal de confirmación para cierre de notas */}
       <Modal
         size='md'
         isOpen={isConfirmOpen}
-        onOpenChange={(open) => {
-          setIsConfirmOpen(open)
-        }}
-        cabecera={
-          operacionGrupal
-            ? 'Confirmar cierre de todas las notas'
-            : 'Confirmar cierre de nota'
-        }
+        onOpenChange={setIsConfirmOpen}
+        cabecera={operacionGrupal ? 'Confirmar cierre de todas las notas' : 'Confirmar cierre de nota'}
         cuerpo={
           <div className='flex flex-col'>
-            <p>
-              {operacionGrupal
-                ? '¿Está seguro de cerrar todas las notas del grupo?'
-                : `¿Está seguro de cerrar la nota de ${estudianteActual?.Nombre}?`}
-            </p>
+            <p>{operacionGrupal ? '¿Está seguro de cerrar todas las notas del grupo?' : `¿Está seguro de cerrar la nota de ${estudianteActual?.Nombre}?`}</p>
             <p className='text-warning-500 font-semibold mt-2'>
-              {operacionGrupal
-                ? 'Esta acción registrará las notas en el sistema académico.'
-                : 'Esta acción registrará la respectiva nota en el sistema académico.'}
+              {operacionGrupal ? 'Esta acción registrará las notas en el sistema académico.' : 'Esta acción registrará la respectiva nota en el sistema académico.'}
             </p>
             <div className='flex justify-end space-x-3 mt-6 mb-[-20px]'>
-              <Boton
-                onClick={() => {
-                  setIsConfirmOpen(false)
-                  if (operacionGrupal) {
-                    cerrarTodasLasNotas()
-                  } else if (estudianteActual) {
-                    cerrarNotas(estudianteActual)
-                  }
-                }}
-              >
+              <Boton onClick={() => {
+                setIsConfirmOpen(false)
+                if (operacionGrupal) cerrarTodasLasNotas()
+                else if (estudianteActual) cerrarNotas(estudianteActual)
+              }}>
                 Confirmar
               </Boton>
             </div>
@@ -423,15 +331,9 @@ const NotasPosgrado = () => {
         }
       />
 
-      {/* AlertaModal para notificaciones */}
-      <AlertaModal
-        isOpen={isAlertOpen}
-        onClose={() => setIsAlertOpen(false)}
-        message={alertMessage}
-        type={alertType}
-        titulo={alertTitulo}
-      />
+      <AlertaModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} message={alertMessage} type={alertType} titulo={alertTitulo} />
     </div>
   )
 }
+
 export default NotasPosgrado

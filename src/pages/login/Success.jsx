@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+﻿import { useEffect } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../../lib/hooks/useAuth"
 import { getBackendUrl } from "../../lib/controllers/endpoints"
@@ -34,7 +34,7 @@ export default function Success() {
             return
          }
 
-         if (rol === "docente") { navigate("/listado-proyectos"); return }
+         if (rol === "docente") { navigate("/docente/grupos"); return }
          if (rol === "director" || rol === "director de programa") { navigate("/academico/programas"); return }
 
          navigate("/estado-proyecto")

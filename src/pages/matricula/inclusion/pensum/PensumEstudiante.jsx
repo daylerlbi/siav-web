@@ -10,7 +10,7 @@ const PensumEstudiante = () => {
   const backendUrl = getBackendUrl()
 
   useEffect(() => {
-    fetch(`${backendUrl}/matriculas/pensum/estudiante/${id}`)
+    fetch(`${backendUrl}/api/matriculas/pensum/estudiante/${id}`)
       .then((response) => response.json())
       .then((data) => {
         setPensum(data)

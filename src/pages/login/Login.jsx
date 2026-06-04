@@ -13,9 +13,9 @@ const Login = () => {
     localStorage.clear()
     if (!isLoading && isAuthenticated) {
       if (userLogged.role.toLowerCase() === 'docente') {
-        navigate('/listado-proyectos')
-        return
-      }
+  navigate('/docente/grupos')
+  return
+}
       if (userLogged.role.toLowerCase() === 'estudiante') {
         navigate('/estado-proyecto')
         return

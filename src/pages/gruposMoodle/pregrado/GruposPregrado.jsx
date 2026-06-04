@@ -33,12 +33,12 @@ const GruposPregrado = () => {
 
     if (codigoPrograma) {
       // Obtener información del programa
-      fetch(`${backendUrl}/programas/codigo/${codigoPrograma}`)
+      fetch(`${backendUrl}/api/programas/codigo/${codigoPrograma}`)
         .then((response) => response.json())
         .then((data) => {
           setPrograma(data)
           // Obtener semestres del programa
-          return fetch(`${backendUrl}/programas/${data.id}/semestres`)
+          return fetch(`${backendUrl}/api/programas/${data.id}/semestres`)
         })
         .then((response) => response.json())
         .then((data) => {
@@ -435,7 +435,7 @@ const GruposPregrado = () => {
   // Función para obtener el pensum del programa
   const obtenerPensumPrograma = async () => {
     const response = await fetch(
-      `${backendUrl}/pensums/programa/${programa.id}`
+      `${backendUrl}/api/pensums/programa/${programa.id}`
     )
 
     if (!response.ok) {

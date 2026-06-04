@@ -61,6 +61,7 @@ import AdminProyectos from './pages/admin/proyectos/AdminProyectos'
 import AdminGrupos from './pages/admin/sustentaciones/AdminGrupos'
 import VerEstudiantePregrado from './pages/gruposMoodle/pregrado/VerEstudiantePregrado'
 import ManualUsuarioFinal from './pages/manual/ManualUsuarioFinal'
+import DashboardDocente from './pages/docente/DashboardDocente'
 
 function App() {
   return (
@@ -149,6 +150,9 @@ function App() {
             <Route path='/matricula/inclusion/matricular/matricularMateria/:codigo/:id' element={<MatricularMateria />} />
             <Route path='/matricula/inclusion/matricular/pensum/:id' element={<PensumEstudiante />} />
 
+            {/* Docente */}
+            <Route path='/docente/grupos' element={<DashboardDocente />} />
+
             {/* Grupos pregrado */}
             <Route path='/pregrado/grupos' element={<GruposPregrado />} />
             <Route path='/pregrado/grupos/grupo' element={<VerGrupoPregrado />} />
@@ -159,6 +163,7 @@ function App() {
             <Route path='/posgrado/grupos/ver-grupo/:id' element={<VerGrupoPosgrado />} />
             <Route path='/posgrado/grupos/ver-grupo/ver-estudiante/:id' element={<VerEstudiantePosgrado />} />
             <Route path='/posgrado/grupos/notas/:id' element={<NotasPosgrado />} />
+            <Route path='/notas/posgrado/:id' element={<NotasPosgrado />} />
 
             <Route path='/admin/terminar-semestre' element={<TerminarSemestre />} />
           </Route>

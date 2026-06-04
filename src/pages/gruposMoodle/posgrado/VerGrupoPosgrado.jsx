@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import Tabla from '../../../components/Tabla'
 import { useEffect, useState } from 'react'
 import { Eye } from 'lucide-react'
@@ -6,7 +6,6 @@ import { ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useParams } from 'react-router-dom'
 import { getBackendUrl } from '../../../lib/controllers/endpoints'
-
 const VerGrupoPosgrado = () => {
   const { id } = useParams()
   const [grupo, setGrupo] = useState(null)
@@ -14,11 +13,10 @@ const VerGrupoPosgrado = () => {
   const [informacion, setInformacion] = useState([])
   const [cargandoGrupo, setCargandoGrupo] = useState(true)
   const backendUrl = getBackendUrl()
-
   useEffect(() => {
     if (id) {
       setCargandoGrupo(true)
-      fetch(`${backendUrl}/estudiantes/grupo-cohorte/${id}`)
+      fetch(`${backendUrl}/api/estudiantes/grupo-cohorte/${id}`)
         .then((response) => response.json())
         .then((data) => {
           setGrupo({
@@ -27,20 +25,18 @@ const VerGrupoPosgrado = () => {
             '# Estudiantes': data.estudiantes.length
           })
         })
-
-      fetch(`${backendUrl}/estudiantes/grupo-cohorte/${id}`)
+      fetch(`${backendUrl}/api/estudiantes/grupo-cohorte/${id}`)
         .then((response) => response.json())
         .then((data) => {
           setListaEstudiantes(data.estudiantes)
         })
     }
   }, [id])
-
   useEffect(() => {
     if (listaEstudiantes.length > 0) {
       const estudiantesConMatricula = listaEstudiantes.map((estudiante) => ({
         ...estudiante,
-        Código: estudiante.codigo,
+        Codigo: estudiante.codigo,
         Nombre: [
           estudiante.nombre,
           estudiante.nombre2,
@@ -49,23 +45,19 @@ const VerGrupoPosgrado = () => {
         ]
           .filter(Boolean)
           .join(' '),
-        'Correo electrónico': estudiante.email
+        'Correo electronico': estudiante.email
       }))
       setInformacion(estudiantesConMatricula)
       setCargandoGrupo(false)
     }
   }, [listaEstudiantes])
-
   const Navigate = useNavigate()
-
   const verEstudiante = (estudiante) => {
     localStorage.setItem('usuario', JSON.stringify(estudiante))
     Navigate('/posgrado/grupos/ver-grupo/ver-estudiante/' + estudiante.id)
     localStorage.setItem('ruta', 'grupos')
   }
-
-  const columnas = ['Código', 'Nombre', 'Correo electrónico']
-
+  const columnas = ['Codigo', 'Nombre', 'Correo electronico']
   const acciones = [
     {
       icono: <Eye className='text-[25px]' />,
@@ -73,20 +65,18 @@ const VerGrupoPosgrado = () => {
       accion: verEstudiante
     }
   ]
-
-  const filtros = ['Código', 'Nombre']
-
+  const filtros = ['Codigo', 'Nombre']
   return (
     <div className='flex flex-col items-center p-4'>
       <div className='w-full'>
         <button
-          className='w-[40px] h-[30px] text-[30px] bg-rojo-mate flex items-center  justify-center rounded-md border border-rojo-mate text-white hover:bg-rojo-oscuro ease-in-out transition-all duration-300'
+          className='w-[40px] h-[30px] text-[30px] bg-rojo-mate flex items-center justify-center rounded-md border border-rojo-mate text-white hover:bg-rojo-oscuro ease-in-out transition-all duration-300'
           onClick={() => window.history.back()}
         >
           <ArrowLeft />
         </button>
       </div>
-      <p className='text-titulos'>Información del grupo</p>
+      <p className='text-titulos'>Informacion del grupo</p>
       <p className='text-subtitulos'>{grupo?.Nombre}</p>
       <div className='flex flex-row w-full my-8'>
         <div className='w-[50%] flex flex-row justify-center space-x-2'>
@@ -94,7 +84,7 @@ const VerGrupoPosgrado = () => {
           <div>{grupo?.Profesor}</div>
         </div>
         <div className='w-[50%] flex flex-row justify-center space-x-2'>
-          <div className='font-semibold'>Número de estudiantes:</div>
+          <div className='font-semibold'>Numero de estudiantes:</div>
           <div>{grupo?.['# Estudiantes']}</div>
         </div>
       </div>
@@ -112,5 +102,4 @@ const VerGrupoPosgrado = () => {
     </div>
   )
 }
-
 export default VerGrupoPosgrado

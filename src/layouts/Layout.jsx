@@ -1,13 +1,21 @@
-import Sidebar from './Sidebar'
+﻿import Sidebar from './Sidebar'
 import { Outlet } from 'react-router-dom'
 import { SidebarProvider } from '../context/SidebarContext'
 import { useLocation } from 'react-router-dom'
 import Topbar from '../components/Topbar'
 import ProjectSidebar from './temp/ProjectSidebar'
 import HelpButton from '../components/HelpButton'
-
 const Layout = () => {
   const location = useLocation()
+  const getEsDocente = () => {
+    try {
+      const token = localStorage.getItem('googleToken')
+      if (!token) return false
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return (payload.role || '').toLowerCase() === 'docente'
+    } catch { return false }
+  }
+  const esDocente = getEsDocente()
   const projectRoutes = [
     "/listado-informes",
     "/listado-proyectos",
@@ -16,12 +24,12 @@ const Layout = () => {
     "/seguimiento",
     "/informes",
   ]
-
-  const isProjectRoute = location.pathname.startsWith("/listado-proyectos") ||
+  const isProjectRoute = !esDocente && (
+    location.pathname.startsWith("/listado-proyectos") ||
     location.pathname.startsWith("/listado-informes") ||
     location.pathname.startsWith("/listado-sustentaciones") ||
-    projectRoutes.includes(location.pathname);
-
+    projectRoutes.includes(location.pathname)
+  )
   return (
     <SidebarProvider>
       <div className='min-h-screen min-w-fit flex flex-col'>
@@ -33,21 +41,15 @@ const Layout = () => {
                 <div className='flex-shrink-0'>
                   <Sidebar />
                 </div>
-                <div
-                  className={`flex-1 ${location.pathname !== '/estado-proyecto' && 'p-6'}`}
-                >
-                  {/* aqui iba el p-6 para darle padding al children pero en /estado-proyecto se necesita sin padding */}
+                <div className='flex-1 p-6'>
                   <Outlet />
                 </div>
               </div>
             </>
         }
-        
-        {/* Botón de ayuda flotante - visible en toda la aplicación */}
         <HelpButton />
       </div>
     </SidebarProvider>
   )
 }
-
 export default Layout

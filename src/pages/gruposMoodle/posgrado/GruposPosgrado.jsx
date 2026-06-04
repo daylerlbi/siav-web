@@ -25,239 +25,51 @@ const GruposPosgrado = () => {
   const [progresoGrupos, setProgresoGrupos] = useState({ actual: 0, total: 0 })
 
   useEffect(() => {
-    setPrograma(localStorage.getItem('codigoPrograma')) // Obtener el valor del localStorage
+    setPrograma(localStorage.getItem('codigoPrograma'))
   }, [])
 
   useEffect(() => {
-    if (programa !== '' && programa !== undefined) {
+    if (programa !== '' && programa !== undefined && programa !== null) {
       setCargandoGrupos(true)
-      fetch(`${backendUrl}/grupos/programa/${programa}`)
+      fetch(`${backendUrl}/api/grupos/vinculados`)
         .then((response) => response.json())
         .then((data) => {
-          setGrupos(data)
+          // Filtrar por programaId que coincida con el programa seleccionado
+          const gruposFiltrados = data.filter(
+            (g) => String(g.programaId) === String(programa)
+          )
+          setGrupos(gruposFiltrados)
+          const info = gruposFiltrados.map((grupo) => ({
+            ...grupo,
+            Código: grupo.codigoGrupo,
+            Nombre: grupo.grupoNombre,
+            Cohorte: grupo.cohorteNombre,
+            Profesor: grupo.docenteNombre
+          }))
+          setInformacion(info)
         })
-        .finally(() => {
-          setCargandoGrupos(false)
-        })
+        .catch((error) => console.error('Error al cargar grupos:', error))
+        .finally(() => setCargandoGrupos(false))
     }
   }, [programa])
 
-  useEffect(() => {
-    if (grupos.length > 0) {
-      setCargandoGrupos(true)
-      // Crear un array de promesas para cada grupo
-      const promesas = grupos.map((grupo) =>
-        fetch(`${backendUrl}/estudiantes/grupo-cohorte/${grupo.id}`)
-          .then((response) => response.json())
-          .then((data) => ({
-            ...grupo,
-            Código: grupo.codigoMateria,
-            Nombre: grupo.grupoNombre,
-            '# Estudiantes': data.estudiantes.length,
-            Profesor: grupo.docenteNombre,
-            Cohorte: grupo.cohorteNombre
-          }))
-      )
-
-      // Esperar a que todas las promesas se resuelvan
-      Promise.all(promesas)
-        .then((gruposConEstudiantes) => {
-          setInformacion(gruposConEstudiantes)
-        })
-        .catch((error) =>
-          console.error('Error al obtener los estudiantes:', error)
-        )
-        .finally(() => {
-          setCargandoGrupos(false)
-        })
-    }
-  }, [grupos])
-
   const mostrarNotificacion = () => {
-    if (isOpenGrupo) {
-      addToast({
-        title: 'Grupo actualizado',
-        description: `El grupo ${grupoNombre} ha sido actualizado correctamente`,
-        color: 'success',
-        timeout: '3000',
-        shouldShowTimeoutProgress: true
-      })
-    } else {
-      addToast({
-        title: 'Grupos actualizados',
-        description: 'Los grupos han sido actualizados correctamente',
-        color: 'success',
-        timeout: '3000',
-        shouldShowTimeoutProgress: true
-      })
-    }
+    addToast({
+      title: isOpenGrupo ? 'Grupo actualizado' : 'Grupos actualizados',
+      description: isOpenGrupo
+        ? `El grupo ${grupoNombre} ha sido actualizado correctamente`
+        : 'Los grupos han sido actualizados correctamente',
+      color: 'success',
+      timeout: '3000',
+      shouldShowTimeoutProgress: true
+    })
   }
 
-  const crearGrupoMoodle = (grupo) => {
-    const programaId = grupo.programaId
-
-    fetch(`${backendUrl}/programas/${programaId}`)
-      .then((response) => response.json())
-      .then((data) => {
-        const programa = data
-
-        if (!grupo.moodleId) {
-          // Crear el grupo en Moodle
-          fetch(
-            `${moodleUrl}/?wstoken=${moodleToken}` +
-            `&moodlewsrestformat=json` +
-            `&wsfunction=core_course_create_courses` +
-            `&courses[0][fullname]=${grupo.Nombre}` +
-            `&courses[0][categoryid]=${programa.moodleId}` +
-            `&courses[0][shortname]=${grupo.codigoGrupo}`
-          )
-            .then((response) => response.json())
-            .then((data) => {
-              const moodleId = data[0].id
-
-              // Actualizar el grupo con el moodleId
-              fetch(
-                `${backendUrl}/grupos/moodle/${grupo.id}?moodleId=${moodleId}`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  }
-                }
-              )
-                .then((response) => response.json())
-                .then(() => {
-                  // Matricular estudiantes y profesor
-                  matricularUsuarios(grupo.id, moodleId)
-                })
-            })
-        } else {
-          // El grupo ya existe, solo matricular estudiantes y profesor
-          matricularUsuarios(grupo.id, grupo.moodleId)
-        }
-      })
-  }
-
-  // Función para obtener usuarios matriculados en el curso
-  const obtenerUsuariosMatriculados = async (moodleId) => {
-    try {
-      const response = await fetch(
-        `${moodleUrl}/?wstoken=${moodleToken}` +
-        `&moodlewsrestformat=json` +
-        `&wsfunction=core_enrol_get_enrolled_users` +
-        `&courseid=${moodleId}`
-      )
-      const data = await response.json()
-      return data
-    } catch (error) {
-      console.error('Error obteniendo usuarios matriculados:', error)
-      return []
-    }
-  }
-
-  // Función para matricular profesor
-  const matricularProfesor = async (
-    docenteId,
-    moodleId,
-    usuariosMatriculados
-  ) => {
-    try {
-      // Obtener información del profesor
-      const response = await fetch(`${backendUrl}/usuarios/${docenteId}`)
-      const profesor = await response.json()
-
-      if (profesor.moodleId) {
-        // Verificar si el profesor ya está matriculado
-        const profesorYaMatriculado = usuariosMatriculados.some(
-          (usuario) => usuario.id === parseInt(profesor.moodleId)
-        )
-
-        if (!profesorYaMatriculado) {
-          // Matricular profesor con rol de profesor (roleid = 3)
-          await fetch(
-            `${moodleUrl}/?wstoken=${moodleToken}` +
-            `&moodlewsrestformat=json` +
-            `&wsfunction=enrol_manual_enrol_users` +
-            `&enrolments[0][roleid]=3` + // 3 = rol de profesor
-            `&enrolments[0][userid]=${profesor.moodleId}` +
-            `&enrolments[0][courseid]=${moodleId}`
-          )
-        }
-      }
-    } catch (error) {
-      console.error('Error matriculando profesor:', error)
-    }
-  }
-
-  // Función principal para matricular usuarios (estudiantes y profesor)
-  const matricularUsuarios = async (grupoId, moodleId) => {
-    try {
-      // Obtener usuarios ya matriculados
-      const usuariosMatriculados = await obtenerUsuariosMatriculados(moodleId)
-
-      // Obtener estudiantes del grupo
-      const responseEstudiantes = await fetch(
-        `${backendUrl}/estudiantes/grupo-cohorte/${grupoId}`
-      )
-      const dataEstudiantes = await responseEstudiantes.json()
-      const estudiantes = dataEstudiantes.estudiantes
-
-      // Obtener información del grupo para el docenteId
-      const grupo = grupos.find((g) => g.id === grupoId)
-
-      // Matricular profesor
-      if (grupo && grupo.docenteId) {
-        await matricularProfesor(
-          grupo.docenteId,
-          moodleId,
-          usuariosMatriculados
-        )
-      }
-
-      // Matricular estudiantes
-      const promesasEstudiantes = estudiantes.map(async (estudiante) => {
-        if (estudiante.moodleId) {
-          // Verificar si el estudiante ya está matriculado
-          const estudianteYaMatriculado = usuariosMatriculados.some(
-            (usuario) => usuario.id === parseInt(estudiante.moodleId)
-          )
-
-          if (!estudianteYaMatriculado) {
-            try {
-              await fetch(
-                `${moodleUrl}/?wstoken=${moodleToken}` +
-                `&moodlewsrestformat=json` +
-                `&wsfunction=enrol_manual_enrol_users` +
-                `&enrolments[0][roleid]=5` + // 5 = rol de estudiante
-                `&enrolments[0][userid]=${estudiante.moodleId}` +
-                `&enrolments[0][courseid]=${moodleId}`
-              )
-            } catch (error) {
-              console.error(
-                `Error matriculando estudiante ${estudiante.nombre}:`,
-                error
-              )
-            }
-          }
-        }
-      })
-
-      await Promise.all(promesasEstudiantes)
-    } catch (error) {
-      console.error('Error en proceso de matriculación:', error)
-    }
-  }
-
-  // Función auxiliar para crear grupo individual sin mostrar modales
-  const crearGrupoIndividual = async (grupo) => {
-    const programaId = grupo.programaId
-
-    const programaData = await fetch(
-      `${backendUrl}/programas/${programaId}`
-    ).then((response) => response.json())
+  const crearGrupoMoodle = async (grupo) => {
+    const programaData = await fetch(`${backendUrl}/api/programas/${grupo.programaId}`)
+      .then((r) => r.json())
 
     if (!grupo.moodleId) {
-      // Crear el grupo en Moodle
       const moodleResponse = await fetch(
         `${moodleUrl}/?wstoken=${moodleToken}` +
         `&moodlewsrestformat=json` +
@@ -266,25 +78,88 @@ const GruposPosgrado = () => {
         `&courses[0][categoryid]=${programaData.moodleId}` +
         `&courses[0][shortname]=${grupo.codigoGrupo}`
       )
-
       const moodleData = await moodleResponse.json()
       const moodleId = moodleData[0].id
 
-      // Actualizar el grupo con el moodleId
-      await fetch(
-        `${backendUrl}/grupos/moodle/${grupo.id}?moodleId=${moodleId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      )
+      await fetch(`${backendUrl}/api/grupos/moodle/${grupo.id}?moodleId=${moodleId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
 
-      // Matricular estudiantes y profesor
       await matricularUsuarios(grupo.id, moodleId)
     } else {
-      // El grupo ya existe, solo matricular estudiantes y profesor
+      await matricularUsuarios(grupo.id, grupo.moodleId)
+    }
+  }
+
+  const obtenerUsuariosMatriculados = async (moodleId) => {
+    try {
+      const response = await fetch(
+        `${moodleUrl}/?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=core_enrol_get_enrolled_users&courseid=${moodleId}`
+      )
+      const data = await response.json()
+      return data || []
+    } catch { return [] }
+  }
+
+  const matricularProfesor = async (docenteId, moodleId, usuariosMatriculados) => {
+    try {
+      const profesor = await fetch(`${backendUrl}/api/usuarios/${docenteId}`).then(r => r.json())
+      if (profesor.moodleId) {
+        const yaMatriculado = usuariosMatriculados.some(u => u.id === parseInt(profesor.moodleId))
+        if (!yaMatriculado) {
+          await fetch(
+            `${moodleUrl}/?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=enrol_manual_enrol_users` +
+            `&enrolments[0][roleid]=3&enrolments[0][userid]=${profesor.moodleId}&enrolments[0][courseid]=${moodleId}`
+          )
+        }
+      }
+    } catch (error) { console.error('Error matriculando profesor:', error) }
+  }
+
+  const matricularUsuarios = async (grupoId, moodleId) => {
+    try {
+      const usuariosMatriculados = await obtenerUsuariosMatriculados(moodleId)
+      const dataEstudiantes = await fetch(`${backendUrl}/api/estudiantes/matriculados/grupo-cohorte/${grupoId}`).then(r => r.json())
+      const estudiantes = dataEstudiantes.estudiantes || []
+
+      const grupo = grupos.find((g) => g.id === grupoId)
+      if (grupo?.docenteId) {
+        await matricularProfesor(grupo.docenteId, moodleId, usuariosMatriculados)
+      }
+
+      await Promise.all(
+        estudiantes.map(async (estudiante) => {
+          if (estudiante.moodleId) {
+            const yaMatriculado = usuariosMatriculados.some(u => u.id === parseInt(estudiante.moodleId))
+            if (!yaMatriculado) {
+              await fetch(
+                `${moodleUrl}/?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=enrol_manual_enrol_users` +
+                `&enrolments[0][roleid]=5&enrolments[0][userid]=${estudiante.moodleId}&enrolments[0][courseid]=${moodleId}`
+              )
+            }
+          }
+        })
+      )
+    } catch (error) { console.error('Error en matriculación:', error) }
+  }
+
+  const crearGrupoIndividual = async (grupo) => {
+    const programaData = await fetch(`${backendUrl}/api/programas/${grupo.programaId}`).then(r => r.json())
+
+    if (!grupo.moodleId) {
+      const moodleData = await fetch(
+        `${moodleUrl}/?wstoken=${moodleToken}&moodlewsrestformat=json&wsfunction=core_course_create_courses` +
+        `&courses[0][fullname]=${grupo.Nombre}&courses[0][categoryid]=${programaData.moodleId}&courses[0][shortname]=${grupo.codigoGrupo}`
+      ).then(r => r.json())
+
+      const moodleId = moodleData[0].id
+      await fetch(`${backendUrl}/api/grupos/moodle/${grupo.id}?moodleId=${moodleId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      await matricularUsuarios(grupo.id, moodleId)
+    } else {
       await matricularUsuarios(grupo.id, grupo.moodleId)
     }
   }
@@ -293,64 +168,35 @@ const GruposPosgrado = () => {
     try {
       setIsCreatingAll(true)
       setProgresoGrupos({ actual: 0, total: grupos.length })
+      let exitosos = 0, errores = 0
 
-      let gruposCreados = 0
-      let gruposConError = 0
-
-      // Procesar cada grupo de la lista
       for (let i = 0; i < grupos.length; i++) {
-        const grupo = grupos[i]
-
-        // Actualizar progreso
         setProgresoGrupos({ actual: i + 1, total: grupos.length })
-
         try {
-          // Llamar a la función de creación específica
-          await crearGrupoIndividual(grupo)
-          gruposCreados++
-        } catch (error) {
-          console.error(`Error procesando grupo ${grupo.grupoNombre}:`, error)
-          gruposConError++
-        }
+          await crearGrupoIndividual(grupos[i])
+          exitosos++
+        } catch { errores++ }
       }
 
-      // Mostrar resumen final
-      if (gruposConError === 0) {
-        addToast({
-          title: 'Proceso completado',
-          description: `${gruposCreados} grupos creados/actualizados exitosamente`,
-          color: 'success',
-          timeout: '5000',
-          shouldShowTimeoutProgress: true
-        })
-      } else {
-        addToast({
-          title: 'Proceso completado con errores',
-          description: `${gruposCreados} grupos exitosos, ${gruposConError} con errores`,
-          color: 'warning',
-          timeout: '5000',
-          shouldShowTimeoutProgress: true
-        })
-      }
-
-      setIsOpen(false)
-    } catch (error) {
       addToast({
-        title: 'Error',
-        description: 'Error en el proceso masivo de creación de grupos',
-        color: 'danger',
-        timeout: '3000',
+        title: errores === 0 ? 'Proceso completado' : 'Proceso completado con errores',
+        description: errores === 0
+          ? `${exitosos} grupos creados/actualizados exitosamente`
+          : `${exitosos} grupos exitosos, ${errores} con errores`,
+        color: errores === 0 ? 'success' : 'warning',
+        timeout: '5000',
         shouldShowTimeoutProgress: true
       })
+      setIsOpen(false)
+    } catch {
+      addToast({ title: 'Error', description: 'Error en el proceso masivo', color: 'danger', timeout: '3000', shouldShowTimeoutProgress: true })
     } finally {
       setIsCreatingAll(false)
       setProgresoGrupos({ actual: 0, total: 0 })
     }
   }
 
-  const verGrupo = (grupo) => {
-    Navigate('/posgrado/grupos/ver-grupo/' + grupo.id)
-  }
+  const verGrupo = (grupo) => Navigate('/posgrado/grupos/ver-grupo/' + grupo.id)
 
   const crearGrupo = (grupo) => {
     setGrupoNombre(grupo.Nombre)
@@ -364,14 +210,8 @@ const GruposPosgrado = () => {
       await crearGrupoMoodle(grupoSeleccionado)
       mostrarNotificacion()
       setIsOpenGrupo(false)
-    } catch (error) {
-      addToast({
-        title: 'Error',
-        description: 'Error al crear el grupo',
-        color: 'danger',
-        timeout: '3000',
-        shouldShowTimeoutProgress: true
-      })
+    } catch {
+      addToast({ title: 'Error', description: 'Error al crear el grupo', color: 'danger', timeout: '3000', shouldShowTimeoutProgress: true })
     } finally {
       setIsCreatingIndividual(false)
     }
@@ -382,24 +222,12 @@ const GruposPosgrado = () => {
     Navigate('notas/' + grupo.id)
   }
 
-  const columnas = ['Código', 'Nombre', '# Estudiantes', 'Profesor', 'Cohorte']
+  const columnas = ['Código', 'Nombre', 'Cohorte', 'Profesor']
   const filtros = ['Código', 'Nombre', 'Cohorte']
   const acciones = [
-    {
-      icono: <Eye className='text-[25px]' />,
-      tooltip: 'Ver',
-      accion: (grupo) => verGrupo(grupo)
-    },
-    {
-      icono: <CircleFadingPlus className='text-[25px]' />,
-      tooltip: 'Crear/actualizar grupo',
-      accion: (grupo) => crearGrupo(grupo)
-    },
-    {
-      icono: <NotebookPen className='text-[25px]' />,
-      tooltip: 'Ver notas',
-      accion: verNotas
-    }
+    { icono: <Eye className='text-[25px]' />, tooltip: 'Ver', accion: verGrupo },
+    { icono: <CircleFadingPlus className='text-[25px]' />, tooltip: 'Crear/actualizar grupo', accion: crearGrupo },
+    { icono: <NotebookPen className='text-[25px]' />, tooltip: 'Ver notas', accion: verNotas }
   ]
 
   return (
@@ -415,30 +243,21 @@ const GruposPosgrado = () => {
         />
       </div>
       <div className='w-full flex justify-end mt-4'>
-        <Boton
-          onClick={() => {
-            setIsOpen(true)
-          }}
-          disabled={isCreatingAll}
-        >
+        <Boton onClick={() => setIsOpen(true)} disabled={isCreatingAll}>
           {isCreatingAll ? 'Creando grupos...' : 'Crear grupos'}
         </Boton>
       </div>
+
       <Modal
         isOpen={isOpen}
-        onOpenChange={(open) => {
-          if (!isCreatingAll) {
-            setIsOpen(open)
-          }
-        }}
+        onOpenChange={(open) => { if (!isCreatingAll) setIsOpen(open) }}
         cabecera='Crear Grupos'
         cuerpo={
           <div>
             <p>¿Estás seguro de crear/actualizar todos los grupos?</p>
             {isCreatingAll && (
               <p className='text-sm text-gray-600 mt-2'>
-                Procesando grupos ({progresoGrupos.actual}/
-                {progresoGrupos.total}), por favor espere...
+                Procesando grupos ({progresoGrupos.actual}/{progresoGrupos.total}), por favor espere...
               </p>
             )}
           </div>
@@ -449,25 +268,16 @@ const GruposPosgrado = () => {
           </Boton>
         }
       />
+
       <Modal
         isOpen={isOpenGrupo}
-        onOpenChange={(open) => {
-          if (!isCreatingIndividual) {
-            setIsOpenGrupo(open)
-          }
-        }}
+        onOpenChange={(open) => { if (!isCreatingIndividual) setIsOpenGrupo(open) }}
         cabecera='Crear Grupo'
         cuerpo={
           <div>
-            <p>
-              {'¿Estás seguro de crear/actualizar el grupo ' +
-                grupoNombre +
-                '?'}
-            </p>
+            <p>{'¿Estás seguro de crear/actualizar el grupo ' + grupoNombre + '?'}</p>
             {isCreatingIndividual && (
-              <p className='text-sm text-gray-600 mt-2'>
-                Creando grupo, por favor espere...
-              </p>
+              <p className='text-sm text-gray-600 mt-2'>Creando grupo, por favor espere...</p>
             )}
           </div>
         }
@@ -477,12 +287,10 @@ const GruposPosgrado = () => {
           </Boton>
         }
       />
-      <ToastProvider
-        placement='top-right'
-        toastOffset={10}
-        maxVisibleToasts={1}
-      />
+
+      <ToastProvider placement='top-right' toastOffset={10} maxVisibleToasts={1} />
     </div>
   )
 }
+
 export default GruposPosgrado

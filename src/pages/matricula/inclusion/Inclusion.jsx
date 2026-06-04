@@ -6,7 +6,6 @@ import { getBackendUrl } from '../../../lib/controllers/endpoints'
 import Modal from '../../../components/Modal'
 import Boton from '../../../components/Boton'
 import AlertaModal from '../../../components/AlertaModal'
-import { Autocomplete, AutocompleteItem } from '@heroui/react'
 
 const Inclusion = () => {
   const [estudiantes, setEstudiantes] = useState([])
@@ -22,7 +21,9 @@ const Inclusion = () => {
   const [grupoSeleccionado, setGrupoSeleccionado] = useState(null)
   const [estudiantesSeleccionados, setEstudiantesSeleccionados] = useState([])
   const [matriculando, setMatriculando] = useState(false)
-  const [paso, setPaso] = useState(1) // 1: seleccionar grupo, 2: seleccionar estudiantes
+  const [paso, setPaso] = useState(1)
+  const [filtroBusqueda, setFiltroBusqueda] = useState('')
+  const [filtroCohorte, setFiltroCohorte] = useState('')
 
   const [alertaModalOpen, setAlertaModalOpen] = useState(false)
   const [alertaMessage, setAlertaMessage] = useState('')
@@ -63,25 +64,25 @@ const Inclusion = () => {
   }
 
   useEffect(() => {
-  const googleToken = localStorage.getItem('googleToken')
-  const estudianteIdLocal = localStorage.getItem('estudianteId')
-  const isEstudiante = (() => {
-    try {
-      if (!googleToken) return false
-      const payload = JSON.parse(atob(googleToken.split('.')[1]))
-      return (payload.role || '').toLowerCase() === 'estudiante'
-    } catch { return false }
-  })()
+    const googleToken = localStorage.getItem('googleToken')
+    const estudianteIdLocal = localStorage.getItem('estudianteId')
+    const isEstudiante = (() => {
+      try {
+        if (!googleToken) return false
+        const payload = JSON.parse(atob(googleToken.split('.')[1]))
+        return (payload.role || '').toLowerCase() === 'estudiante'
+      } catch { return false }
+    })()
 
-  if (isEstudiante && estudianteIdLocal) {
-    Navigate(`matricular/${estudianteIdLocal}`)
-    return
-  }
+    if (isEstudiante && estudianteIdLocal) {
+      Navigate(`matricular/pensum/${estudianteIdLocal}`)
+      return
+    }
 
-  obtenerEstudiantes()
-  localStorage.removeItem('estudianteMatricula')
-  localStorage.removeItem('materiaMatricular')
-}, [])
+    obtenerEstudiantes()
+    localStorage.removeItem('estudianteMatricula')
+    localStorage.removeItem('materiaMatricular')
+  }, [])
 
   useEffect(() => {
     if (estudiantes.length > 0) {
@@ -132,6 +133,8 @@ const Inclusion = () => {
     obtenerGrupos()
     setGrupoSeleccionado(null)
     setEstudiantesSeleccionados([])
+    setFiltroBusqueda('')
+    setFiltroCohorte('')
     setPaso(1)
     setIsLoteModalOpen(true)
   }
@@ -144,11 +147,20 @@ const Inclusion = () => {
     })
   }
 
+  const estudiantesFiltrados = transformedEstudiantes.filter(e => {
+    const busqueda = filtroBusqueda.toLowerCase()
+    const coincideBusqueda = !busqueda || e.Estudiante?.toLowerCase().includes(busqueda) || e.Código?.toLowerCase().includes(busqueda)
+    const coincideCohorte = !filtroCohorte || e.Cohorte === filtroCohorte
+    return coincideBusqueda && coincideCohorte
+  })
+
   const seleccionarTodos = () => {
-    if (estudiantesSeleccionados.length === transformedEstudiantes.length) {
-      setEstudiantesSeleccionados([])
+    if (estudiantesSeleccionados.length === estudiantesFiltrados.length &&
+        estudiantesFiltrados.every(e => estudiantesSeleccionados.find(s => s.Id === e.Id))) {
+      setEstudiantesSeleccionados(prev => prev.filter(s => !estudiantesFiltrados.find(e => e.Id === s.Id)))
     } else {
-      setEstudiantesSeleccionados([...transformedEstudiantes])
+      const nuevos = estudiantesFiltrados.filter(e => !estudiantesSeleccionados.find(s => s.Id === e.Id))
+      setEstudiantesSeleccionados(prev => [...prev, ...nuevos])
     }
   }
 
@@ -217,28 +229,45 @@ const Inclusion = () => {
                 {cargandoGrupos ? (
                   <p className='text-center text-gray-400'>Cargando grupos...</p>
                 ) : (
-                  <Autocomplete
-                    variant='bordered'
-                    className='w-full'
-                    defaultItems={grupos}
-                    label='Grupo'
-                    size='md'
-                    placeholder='Selecciona el grupo'
-                    labelPlacement='outside'
-                    onSelectionChange={(id) => {
-                      const g = grupos.find(g => g.id?.toString() === id?.toString())
-                      setGrupoSeleccionado(g || null)
-                    }}
-                  >
-                    {(grupo) => (
-                      <AutocompleteItem key={grupo.id?.toString()}>
-                        {`${grupo.codigoGrupo || ''} - ${grupo.grupoNombre || ''}`}
-                      </AutocompleteItem>
-                    )}
-                  </Autocomplete>
+                  <div className='max-h-[400px] overflow-y-auto border rounded-lg'>
+                    {(() => {
+                      const semestresUnicos = [...new Set(grupos.map(g => g.semestreMateria))].sort((a, b) => parseInt(a) - parseInt(b))
+                      return semestresUnicos.map(semestre => {
+                        const gruposSemestre = grupos.filter(g => g.semestreMateria === semestre)
+                        return (
+                          <div key={semestre}>
+                            <div className='bg-gray-100 px-4 py-2 sticky top-0 z-10'>
+                              <p className='font-semibold text-sm text-gray-700'>Semestre {semestre}</p>
+                            </div>
+                            {gruposSemestre.map(grupo => (
+                              <div
+                                key={grupo.id}
+                                onClick={() => setGrupoSeleccionado(grupo)}
+                                className={`px-4 py-3 cursor-pointer hover:bg-gray-50 border-b flex items-center justify-between ${grupoSeleccionado?.id === grupo.id ? 'bg-red-50 border-l-4 border-l-rojo-institucional' : ''}`}
+                              >
+                                <div>
+                                  <p className='text-sm font-medium'>{grupo.materia}</p>
+                                  <p className='text-xs text-gray-500'>{grupo.codigoGrupo} — {grupo.grupoNombre}</p>
+                                </div>
+                                <div className='text-right'>
+                                  <p className='text-xs text-gray-400'>{grupo.cohorteNombre}</p>
+                                  {grupoSeleccionado?.id === grupo.id && (
+                                    <span className='text-xs text-rojo-institucional font-semibold'>Seleccionado</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      })
+                    })()}
+                  </div>
                 )}
                 <div className='flex justify-end'>
-                  <Boton onClick={() => { if (!grupoSeleccionado) { showAlerta('Debe seleccionar un grupo', 'error', 'Campo requerido'); return } setPaso(2) }}>
+                  <Boton onClick={() => {
+                    if (!grupoSeleccionado) { showAlerta('Debe seleccionar un grupo', 'error', 'Campo requerido'); return }
+                    setPaso(2)
+                  }}>
                     Siguiente
                   </Boton>
                 </div>
@@ -250,12 +279,37 @@ const Inclusion = () => {
                 <p className='text-sm text-gray-500'>
                   Grupo seleccionado: <strong>{grupoSeleccionado?.codigoGrupo} - {grupoSeleccionado?.grupoNombre}</strong>
                 </p>
+
+                {/* Filtros */}
+                <div className='flex flex-row gap-3'>
+                  <input
+                    type='text'
+                    placeholder='Buscar estudiante o código...'
+                    value={filtroBusqueda}
+                    onChange={(e) => setFiltroBusqueda(e.target.value)}
+                    className='flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-rojo-institucional'
+                  />
+                  <select
+                    value={filtroCohorte}
+                    onChange={(e) => setFiltroCohorte(e.target.value)}
+                    className='px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-rojo-institucional'
+                  >
+                    <option value=''>Todas las cohortes</option>
+                    {[...new Set(transformedEstudiantes.map(e => e.Cohorte).filter(Boolean))].sort().map(cohorte => (
+                      <option key={cohorte} value={cohorte}>{cohorte}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className='flex items-center justify-between'>
                   <p className='text-sm font-medium'>{estudiantesSeleccionados.length} estudiante(s) seleccionado(s)</p>
                   <button onClick={seleccionarTodos} className='text-sm text-rojo-institucional hover:underline'>
-                    {estudiantesSeleccionados.length === transformedEstudiantes.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                    {estudiantesFiltrados.every(e => estudiantesSeleccionados.find(s => s.Id === e.Id)) && estudiantesFiltrados.length > 0
+                      ? 'Deseleccionar filtrados'
+                      : 'Seleccionar filtrados'}
                   </button>
                 </div>
+
                 <div className='max-h-[350px] overflow-y-auto border rounded-lg'>
                   <table className='min-w-full divide-y divide-gray-200'>
                     <thead className='bg-gray-50 sticky top-0'>
@@ -267,7 +321,7 @@ const Inclusion = () => {
                       </tr>
                     </thead>
                     <tbody className='bg-white divide-y divide-gray-200'>
-                      {transformedEstudiantes.map((estudiante) => {
+                      {estudiantesFiltrados.map((estudiante) => {
                         const seleccionado = estudiantesSeleccionados.find(e => e.Id === estudiante.Id)
                         return (
                           <tr
@@ -287,6 +341,7 @@ const Inclusion = () => {
                     </tbody>
                   </table>
                 </div>
+
                 <div className='flex justify-between'>
                   <Boton onClick={() => setPaso(1)}>Atrás</Boton>
                   <Boton onClick={matricularLote} disabled={matriculando}>

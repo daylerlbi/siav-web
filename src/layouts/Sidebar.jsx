@@ -101,15 +101,16 @@ const Sidebar = () => {
     localStorage.setItem('sidebarState', JSON.stringify({ selectedMenu, selectedOption }))
   }, [selectedOption])
 
-  // Lee el rol directo del token en cada render — no depende del estado
   const rolGoogle = getRolGoogle()
   const esGoogleUser = !!localStorage.getItem('googleToken') && !localStorage.getItem('userInfo')
   const esEstudiante = esGoogleUser && rolGoogle === 'estudiante'
   const esDirector = esGoogleUser && (rolGoogle === 'director' || rolGoogle === 'director de programa')
+  const esDocente = esGoogleUser && rolGoogle === 'docente'
 
   const shouldShowMenu = (menuName) => {
     if (esGoogleUser) {
       if (esDirector) return ['Académico', 'Matrícula', 'Usuarios'].includes(menuName)
+      if (esDocente) return ['Académico'].includes(menuName)
       return ['Académico', 'Matrícula'].includes(menuName)
     }
     if (!userRole) return false
@@ -118,14 +119,16 @@ const Sidebar = () => {
     return menuName === 'Proyectos'
   }
 
-  const opcionesAcademico = [
-  { label: 'Programas', href: '/academico/programas' },
-  { label: 'Pénsums', href: '/academico/pensums' },
-  ...(!esEstudiante ? [{ label: 'Cohortes', href: '/academico/cohortes' }] : []),
-  { label: 'Materias', href: '/academico/materias' },
-  { label: 'Grupos', href: '/academico/grupos' },
-  ...(esEstudiante ? [{ label: 'Mis Notas', href: '/academico/mis-notas' }] : [])
-]
+  const opcionesAcademico = esDocente
+  ? [{ label: 'Mis grupos', href: '/docente/grupos' }]
+  : [
+    { label: 'Programas', href: '/academico/programas' },
+    { label: 'Pénsums', href: '/academico/pensums' },
+    ...(!esEstudiante ? [{ label: 'Cohortes', href: '/academico/cohortes' }] : []),
+    { label: 'Materias', href: '/academico/materias' },
+    { label: 'Grupos', href: '/academico/grupos' },
+    ...(esEstudiante ? [{ label: 'Mis Notas', href: '/academico/mis-notas' }] : [])
+  ]
 
   return (
     <div className={`bg-rojo-claro min-h-full transition-all duration-300 min-w-0 overflow-hidden ${isOpen ? 'w-[240px] px-4' : 'w-0'}`}>
@@ -160,7 +163,7 @@ const Sidebar = () => {
                 { label: 'Aplazamiento de semestre', href: '/matricula/aplazamiento' },
                 { label: 'Reintegro', href: '/matricula/reintegros' },
                 { label: 'Contraprestaciones', href: '/matricula/contraprestaciones' },
-                { label: 'Inclusión de materias', href: '/matricula/inclusion' }
+                ...(!esEstudiante ? [{ label: 'Inclusión de materias', href: '/matricula/inclusion' }] : [])
               ]}
               openMenu={selectedMenu === 2}
               selectedOption={selectedOption}
