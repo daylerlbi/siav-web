@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Eye, Check, Pencil, Upload, FileText, X, CheckCircle, FileCheck } from 'lucide-react'
 import TablaEstados from '../../components/TablaEstados'
 import Boton from '../../components/Boton'
@@ -51,7 +51,7 @@ const Reintegros = () => {
 
   const showAlerta = (mensaje, tipo, titulo) => {
     setAlertaMessage(mensaje); setAlertaType(tipo)
-    setAlertaTitulo(titulo || (tipo === 'success' ? 'Operación exitosa' : 'Error'))
+    setAlertaTitulo(titulo || (tipo === 'success' ? 'OperaciÃ³n exitosa' : 'Error'))
     setAlertaModalOpen(true)
   }
 
@@ -67,7 +67,7 @@ const Reintegros = () => {
           .map(solicitud => ({
             Id: solicitud.id, Estudiante: solicitud.estudianteNombre,
             'Semestre Reintegro': solicitud.semestreReintegro, Semestre: solicitud.semestre,
-            'Fecha de Creación': new Date(solicitud.fechaCreacion).toLocaleDateString(),
+            'Fecha de CreaciÃ³n': new Date(solicitud.fechaCreacion).toLocaleDateString(),
             Estado: solicitud.estaAprobado ? 'Aprobado' : 'Pendiente',
             estaAprobado: solicitud.estaAprobado || false,
             estudianteId: solicitud.estudianteId, descripcion: solicitud.descripcion,
@@ -76,7 +76,7 @@ const Reintegros = () => {
           }))
         setInformacion(datosTabla)
       })
-      .catch(() => showAlerta('Error al cargar las solicitudes de reintegro', 'error', 'Error de conexión'))
+      .catch(() => showAlerta('Error al cargar las solicitudes de reintegro', 'error', 'Error de conexiÃ³n'))
       .finally(() => setCargandoReintegros(false))
   }
 
@@ -119,33 +119,33 @@ const Reintegros = () => {
       const data = await r.json()
       if (!r.ok) throw new Error(data.mensaje || 'Error al aprobar el reintegro')
       fetchSolicitudes(); setIsApproveModalOpen(false); setSelectedFile(null); setFileName('')
-      showAlerta(data.mensaje || 'Solicitud aprobada con éxito', 'success', 'Reintegro aprobado')
+      showAlerta(data.mensaje || 'Solicitud aprobada con Ã©xito', 'success', 'Reintegro aprobado')
     } catch (err) { setFileError(err.message); showAlerta(err.message, 'error', 'Error al aprobar') }
     finally { setApproving(false) }
   }
 
   const cargarEstudiantes = async () => {
     try {
-      const r = await fetch(`${backendUrl}/api/estudiantes/listar/estado/2`)
+      const r = await fetch(`${backendUrl}/api/estudiantes/listar/estado/1`)
       if (!r.ok) throw new Error()
       const data = await r.json(); setEstudiantes(data)
-    } catch { showAlerta('Error al cargar la lista de estudiantes', 'error', 'Error de conexión') }
+    } catch { showAlerta('Error al cargar la lista de estudiantes', 'error', 'Error de conexiÃ³n') }
   }
 
   const crearSolicitudReintegro = async (e) => {
     e.preventDefault()
     if (!estudianteId) { showAlerta('Debe seleccionar un estudiante', 'error', 'Campo requerido'); return }
-    if (!descripcion.trim()) { showAlerta('Debe ingresar una descripción o motivo', 'error', 'Campo requerido'); return }
+    if (!descripcion.trim()) { showAlerta('Debe ingresar una descripciÃ³n o motivo', 'error', 'Campo requerido'); return }
     setCreando(true)
     try {
       const r = await fetch(`${backendUrl}/api/solicitudes/reintegro/crear`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ descripcion, estudianteId: parseInt(estudianteId) })
       })
-      const data = await r.json().catch(() => ({ mensaje: r.ok ? 'Solicitud creada con éxito' : 'Error al crear' }))
+      const data = await r.json().catch(() => ({ mensaje: r.ok ? 'Solicitud creada con Ã©xito' : 'Error al crear' }))
       if (!r.ok) throw new Error(data.mensaje || data.message || data.error || 'Error al crear la solicitud')
       limpiarFormularioRegistro(); setIsRegisterModalOpen(false); fetchSolicitudes()
-      showAlerta(data.mensaje || 'Solicitud de reintegro creada con éxito', 'success', 'Reintegro registrado')
+      showAlerta(data.mensaje || 'Solicitud de reintegro creada con Ã©xito', 'success', 'Reintegro registrado')
     } catch (error) { showAlerta(error.message, 'error', 'Error al crear reintegro') }
     finally { setCreando(false) }
   }
@@ -156,7 +156,7 @@ const Reintegros = () => {
   const actualizarSolicitudReintegro = async (e) => {
     e.preventDefault()
     if (!editEstudianteId) { showAlerta('Debe seleccionar un estudiante', 'error', 'Campo requerido'); return }
-    if (!editDescripcion.trim()) { showAlerta('Debe ingresar una descripción o motivo', 'error', 'Campo requerido'); return }
+    if (!editDescripcion.trim()) { showAlerta('Debe ingresar una descripciÃ³n o motivo', 'error', 'Campo requerido'); return }
     setEditando(true)
     try {
       const r = await fetch(`${backendUrl}/api/solicitudes/reintegro/actualizar/${editSolicitudId}`, {
@@ -166,12 +166,12 @@ const Reintegros = () => {
       const data = await r.json().catch(() => ({ mensaje: r.ok ? 'Solicitud actualizada' : 'Error al actualizar' }))
       if (!r.ok) throw new Error(data.mensaje || data.message || data.error || 'Error al actualizar')
       limpiarFormularioEdicion(); setIsEditModalOpen(false); fetchSolicitudes()
-      showAlerta(data.mensaje || 'Solicitud actualizada con éxito', 'success', 'Reintegro actualizado')
+      showAlerta(data.mensaje || 'Solicitud actualizada con Ã©xito', 'success', 'Reintegro actualizado')
     } catch (error) { showAlerta(error.message, 'error', 'Error al actualizar reintegro') }
     finally { setEditando(false) }
   }
 
-  const columnas = ['Id', 'Estudiante', 'Semestre Inicio Aplazamiento', 'Fecha de Creación', 'Semestre Reintegro', 'Estado']
+  const columnas = ['Id', 'Estudiante', 'Semestre Inicio Aplazamiento', 'Fecha de CreaciÃ³n', 'Semestre Reintegro', 'Estado']
   const filtros = ['Estudiante', 'Semestre Reintegro', 'Estado']
 
   const accionesPorEstado = {
@@ -196,8 +196,8 @@ const Reintegros = () => {
         cuerpo={
           <div>
             <div className='flex flex-col gap-1 text-center mb-6'><p className='text-2xl font-semibold text-titulos'>Aprobar Solicitud de Reintegro</p></div>
-            {currentSolicitud && <p>¿Está seguro que desea aprobar la solicitud de reintegro para el estudiante {currentSolicitud.Estudiante}?</p>}
-            <p className='mt-2 mb-1'>Esta acción aprobará el reintegro para el semestre {currentSolicitud?.['Semestre Reintegro']}, habilitará al estudiante para matricular materias y cambiará el estado del estudiante a En curso.</p>
+            {currentSolicitud && <p>Â¿EstÃ¡ seguro que desea aprobar la solicitud de reintegro para el estudiante {currentSolicitud.Estudiante}?</p>}
+            <p className='mt-2 mb-1'>Esta acciÃ³n aprobarÃ¡ el reintegro para el semestre {currentSolicitud?.['Semestre Reintegro']}, habilitarÃ¡ al estudiante para matricular materias y cambiarÃ¡ el estado del estudiante a En curso.</p>
             <p className='text-normal mt-6 mb-2'>Documento de Soporte (PDF o DOCX)</p>
             <Divider className='mb-4' />
             <div className='border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative'>
@@ -214,7 +214,7 @@ const Reintegros = () => {
                 <>
                   <Upload className='h-12 w-12 text-gray-400 mx-auto mb-2' />
                   <p className='text-sm text-gray-500 mb-1'>Haga clic para cargar o arrastre y suelte</p>
-                  <p className='text-xs text-gray-400'>PDF o DOCX (MÁX. 10MB)</p>
+                  <p className='text-xs text-gray-400'>PDF o DOCX (MÃX. 10MB)</p>
                   <button onClick={openFileSelector} className='mt-4 py-1.5 px-4 border border-rojo-institucional text-rojo-institucional rounded-md hover:bg-rojo-institucional hover:text-white transition-colors' disabled={approving}>Seleccionar archivo</button>
                 </>
               )}
